@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-03-02
+
+### Fixed
+- `gh pmu move --backlog` now sets status to Backlog in addition to clearing the branch field (#721)
+  - Previously only cleared branch association; status remained unchanged
+  - Explicit `--status` flag takes precedence when combined with `--backlog`
+
 ## [1.0.4] - 2026-03-01
 
 ### Changed
