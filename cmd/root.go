@@ -49,7 +49,7 @@ Use 'gh pmu <command> --help' for more information about a command.`,
 		},
 	}
 
-	cmd.SetVersionTemplate("{{.Use}} version {{.Version}}\nRubrical Studios (c) 2026\n")
+	cmd.SetVersionTemplate("{{.Use}} version {{.Version}}\nRubrical Systems (c) 2026\n")
 
 	cmd.AddCommand(newInitCommand())
 	cmd.AddCommand(newListCommand())
