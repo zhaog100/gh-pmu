@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-03
+
+### Added
+- Multi-issue support for `gh pmu view` (#725)
+  - Accepts variadic issue numbers: `gh pmu view 42 43 44`
+  - `--json` returns a JSON array for multiple issues, single object for one (backward compatible)
+  - `--jq` works with multi-issue JSON array output
+  - Non-JSON output shows issues sequentially with separator
+  - Invalid issue numbers report errors without blocking valid issues
+  - `--body-stdout`, `--body-file`, and `--web` restricted to single issue
+- Batch GraphQL API methods for O(1) multi-issue fetching (#725)
+  - `GetIssuesWithProjectFieldsBatch` — fetch N issues + project fields in one query
+  - `GetParentIssueBatch` — fetch parent issues for N issues in one query
+
+### Changed
+- Renamed "Rubrical Studios" to "Rubrical Systems" in `--version` output and embedded terms (#726)
+
 ## [1.0.5] - 2026-03-02
 
 ### Fixed
