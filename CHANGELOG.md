@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `WithRetry()`/`WithRetryDelays()` with configurable exponential backoff (1s, 2s, 4s, 8s)
   - Non-rate-limit 403 errors (permission denied) are not retried
 - Copyright line in `--version` output (#712)
-  - `gh pmu --version` now shows `Rubrical Studios (c) 2026` below version string
+  - `gh pmu --version` now shows `Rubrical Systems (c) 2026` below version string
 - Design decision documentation for interface-based HTTP error detection (#710)
 
 ### Fixed
@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Acceptance gate now displays full terms text and `--yes` hint on stderr (#705)
 - Accept command Long description references "Praxis Management Utility" (#704)
 - Terms text updated: title includes "GitHub Praxis Management Utility" (#704)
-- Added Rubrical Studios copyright to terms text (#704)
+- Added Rubrical Systems copyright to terms text (#704)
 - Updated IDPF framework to v0.49.1
 
 ## [1.0.0] - 2026-02-23
