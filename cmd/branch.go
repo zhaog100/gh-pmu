@@ -890,72 +890,30 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 	// Extract version from title
 	releaseVersion := extractBranchVersion(targetBranch.Title)
 
-	// Get project for field operations
-	project, err := client.GetProject(cfg.Project.Owner, cfg.Project.Number)
+	// Get branch issues from tracker sub-issues (no project scan needed)
+	subIssues, err := client.GetSubIssues(owner, repo, targetBranch.Number)
 	if err != nil {
-		return fmt.Errorf("failed to get project: %w", err)
+		return fmt.Errorf("failed to get branch issues: %w", err)
 	}
 
-	// OPTIMIZATION: Two-phase query to avoid fetching full issue details for non-matching items
-	// Phase 1: Get minimal data (issue ID, number, state, field values) for filtering
-	repoFilter := fmt.Sprintf("%s/%s", owner, repo)
-	filter := &api.ProjectItemsFilter{Repository: repoFilter}
-	minimalItems, err := client.GetProjectItemsMinimal(project.ID, filter)
-	if err != nil {
-		return fmt.Errorf("failed to get project items: %w", err)
-	}
-
-	// Filter items by Branch field matching releaseVersion and count done/incomplete
-	// using minimal data (no need for full issue details yet)
-	var matchingRefs []api.IssueRef
-	var doneCount, incompleteCount int
-	for _, item := range minimalItems {
-		// Check if this item has a Branch/Release field matching the target version
-		for _, fv := range item.FieldValues {
-			if (fv.Field == BranchFieldName || fv.Field == LegacyReleaseFieldName) && fv.Value == releaseVersion {
-				// Parse repository from item
-				parts := strings.SplitN(item.Repository, "/", 2)
-				if len(parts) == 2 {
-					matchingRefs = append(matchingRefs, api.IssueRef{
-						Owner:  parts[0],
-						Repo:   parts[1],
-						Number: item.IssueNumber,
-					})
-				}
-				// Count done vs incomplete using State from minimal data
-				if item.IssueState == "CLOSED" || item.IssueState == "closed" {
-					doneCount++
-				} else {
-					incompleteCount++
-				}
-				break
-			}
-		}
-	}
-
-	// Phase 2: Fetch full details only for matching issues (for display and operations)
-	var releaseIssues []api.Issue
-	if len(matchingRefs) > 0 {
-		fullItems, err := client.GetProjectItemsByIssues(project.ID, matchingRefs)
-		if err != nil {
-			return fmt.Errorf("failed to get issue details: %w", err)
-		}
-		for _, item := range fullItems {
-			if item.Issue != nil {
-				releaseIssues = append(releaseIssues, *item.Issue)
-			}
-		}
-	}
-
-	// Separate done vs incomplete issues (using full details for operations)
+	// Convert sub-issues to Issue structs and separate done vs incomplete
 	var doneIssues, incompleteIssues []api.Issue
-	for _, issue := range releaseIssues {
-		if issue.State == "CLOSED" || issue.State == "closed" {
+	for _, si := range subIssues {
+		issue := api.Issue{
+			ID:         si.ID,
+			Number:     si.Number,
+			Title:      si.Title,
+			State:      si.State,
+			URL:        si.URL,
+			Repository: si.Repository,
+		}
+		if si.State == "CLOSED" || si.State == "closed" {
 			doneIssues = append(doneIssues, issue)
 		} else {
 			incompleteIssues = append(incompleteIssues, issue)
 		}
 	}
+	releaseIssues := append(doneIssues, incompleteIssues...)
 
 	// Show branch summary
 	fmt.Fprintf(cmd.OutOrStdout(), "Closing branch: %s\n", opts.branchName)
@@ -963,6 +921,19 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 	fmt.Fprintf(cmd.OutOrStdout(), "  Issues in release: %d (%d done, %d incomplete)\n",
 		len(releaseIssues), len(doneIssues), len(incompleteIssues))
 	fmt.Fprintln(cmd.OutOrStdout())
+
+	// Lazy-load project only when needed for field operations on incomplete issues
+	var project *api.Project
+	getProject := func() (*api.Project, error) {
+		if project == nil {
+			var pErr error
+			project, pErr = client.GetProject(cfg.Project.Owner, cfg.Project.Number)
+			if pErr != nil {
+				return nil, fmt.Errorf("failed to get project: %w", pErr)
+			}
+		}
+		return project, nil
+	}
 
 	// Separate incomplete issues into parking lot and to-move categories
 	var parkingLotIssues, issuesToMove []api.Issue
@@ -978,14 +949,18 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 	}
 
 	for _, issue := range incompleteIssues {
-		itemID, err := client.GetProjectItemID(project.ID, issue.ID)
+		proj, pErr := getProject()
+		if pErr != nil {
+			return pErr
+		}
+		itemID, err := client.GetProjectItemID(proj.ID, issue.ID)
 		if err != nil {
 			// Can't determine status, include in move list
 			issuesToMove = append(issuesToMove, issue)
 			continue
 		}
 
-		status, _ := client.GetProjectItemFieldValue(project.ID, itemID, statusFieldName)
+		status, _ := client.GetProjectItemFieldValue(proj.ID, itemID, statusFieldName)
 		if status == parkingLotValue {
 			parkingLotIssues = append(parkingLotIssues, issue)
 		} else {
@@ -1039,9 +1014,14 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 		if len(issuesToMove) > 0 {
 			fmt.Fprintln(cmd.OutOrStdout(), "Moving incomplete issues to backlog...")
 
+			proj, pErr := getProject()
+			if pErr != nil {
+				return pErr
+			}
+
 			for _, issue := range issuesToMove {
 				// Get project item ID
-				itemID, err := client.GetProjectItemID(project.ID, issue.ID)
+				itemID, err := client.GetProjectItemID(proj.ID, issue.ID)
 				if err != nil {
 					fmt.Fprintf(cmd.ErrOrStderr(), "  Warning: could not find project item for #%d: %v\n", issue.Number, err)
 					continue
@@ -1049,7 +1029,7 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 
 				// Clear Branch field
 				if branchField, ok := cfg.Fields["branch"]; ok {
-					_ = client.SetProjectItemField(project.ID, itemID, branchField.Field, "")
+					_ = client.SetProjectItemField(proj.ID, itemID, branchField.Field, "")
 				}
 
 				// Set status to backlog
@@ -1058,7 +1038,7 @@ func runBranchCloseWithDeps(cmd *cobra.Command, opts *branchCloseOptions, cfg *c
 					if backlogValue == "" {
 						backlogValue = "Backlog"
 					}
-					_ = client.SetProjectItemField(project.ID, itemID, statusField.Field, backlogValue)
+					_ = client.SetProjectItemField(proj.ID, itemID, statusField.Field, backlogValue)
 				}
 
 				fmt.Fprintf(cmd.OutOrStdout(), "  #%d - %s\n", issue.Number, issue.Title)

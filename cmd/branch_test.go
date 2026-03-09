@@ -1487,10 +1487,14 @@ func TestRunBranchCloseWithDeps_NoActiveRelease_ReturnsError(t *testing.T) {
 }
 
 func TestRunBranchCloseWithDeps_GetProjectError(t *testing.T) {
-	// ARRANGE
+	// ARRANGE: GetProject only called when there are incomplete issues needing field ops
 	mock := setupMockForBranch()
 	mock.openIssues = []api.Issue{
 		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
+	}
+	// Need an open sub-issue to trigger the deferred GetProject call
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Open issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.getProjectErr = errors.New("failed to get project")
 
@@ -1513,14 +1517,13 @@ func TestRunBranchCloseWithDeps_GetProjectError(t *testing.T) {
 	}
 }
 
-func TestRunBranchCloseWithDeps_GetProjectItemsError(t *testing.T) {
-	// ARRANGE
+func TestRunBranchCloseWithDeps_GetSubIssuesError_ReturnsError(t *testing.T) {
+	// ARRANGE: GetSubIssues fails — branch close should fail
 	mock := setupMockForBranch()
 	mock.openIssues = []api.Issue{
 		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
 	}
-	// Use the minimal API error since the implementation now uses GetProjectItemsMinimal
-	mock.getProjectItemsMinimalErr = errors.New("failed to get project items")
+	mock.getSubIssuesErr = errors.New("failed to get sub-issues")
 
 	cfg := testBranchConfig()
 	cleanup := setupBranchTestDir(t, cfg)
@@ -1536,19 +1539,18 @@ func TestRunBranchCloseWithDeps_GetProjectItemsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "failed to get project items") {
-		t.Errorf("Expected error to contain 'failed to get project items', got: %v", err)
+	if !strings.Contains(err.Error(), "failed to get") {
+		t.Errorf("Expected error to contain 'failed to get', got: %v", err)
 	}
 }
 
-// Test that branch close uses repository-scoped queries (optimization)
-func TestRunBranchCloseWithDeps_UsesRepositoryFilter(t *testing.T) {
+// Test that branch close calls GetSubIssues with correct owner/repo/tracker
+func TestRunBranchCloseWithDeps_UsesCorrectSubIssueParams(t *testing.T) {
 	// ARRANGE
 	mock := setupMockForBranch()
 	mock.openIssues = []api.Issue{
 		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
 	}
-	mock.projectItems = []api.ProjectItem{} // Empty items for simplicity
 
 	cfg := testBranchConfig()
 	cleanup := setupBranchTestDir(t, cfg)
@@ -1565,18 +1567,20 @@ func TestRunBranchCloseWithDeps_UsesRepositoryFilter(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	// Verify GetProjectItemsMinimal was called with repository filter (optimized API path)
-	if len(mock.getProjectItemsMinimalCalls) != 1 {
-		t.Fatalf("Expected 1 GetProjectItemsMinimal call, got %d", len(mock.getProjectItemsMinimalCalls))
+	// Verify GetSubIssues was called with correct params
+	if len(mock.getSubIssuesCalls) != 1 {
+		t.Fatalf("Expected 1 GetSubIssues call, got %d", len(mock.getSubIssuesCalls))
 	}
 
-	call := mock.getProjectItemsMinimalCalls[0]
-	if call.filter == nil {
-		t.Fatal("Expected GetProjectItemsMinimal to be called with a filter, got nil")
+	call := mock.getSubIssuesCalls[0]
+	if call.owner != "testowner" {
+		t.Errorf("Expected owner %q, got %q", "testowner", call.owner)
 	}
-	expectedRepo := "testowner/testrepo"
-	if call.filter.Repository != expectedRepo {
-		t.Errorf("Expected filter.Repository to be %q, got %q", expectedRepo, call.filter.Repository)
+	if call.repo != "testrepo" {
+		t.Errorf("Expected repo %q, got %q", "testrepo", call.repo)
+	}
+	if call.number != 100 {
+		t.Errorf("Expected tracker number 100, got %d", call.number)
 	}
 }
 
@@ -2313,33 +2317,11 @@ func TestRunBranchCloseWithDeps_SkipsParkingLotIssues(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// 3 incomplete issues: 1 parking lot, 2 regular - using projectItems with Release field
-	// Must include Repository for filter matching in two-phase query
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Parked feature idea", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "Parking Lot"},
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
-		{
-			ID:    "ITEM_3",
-			Issue: &api.Issue{ID: "ISSUE_3", Number: 43, Title: "Another incomplete", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "Ready"},
-			},
-		},
+	// 3 incomplete sub-issues: 1 parking lot, 2 regular
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Parked feature idea", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_3", Number: 43, Title: "Another incomplete", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	// Map issue IDs to item IDs
 	mock.projectItemIDs = map[string]string{
@@ -2410,24 +2392,10 @@ func TestRunBranchCloseWithDeps_AllParkingLotNoMoves(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// Using projectItems with Release field - must include Repository for filter matching
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Parked idea 1", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "Parking Lot"},
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Parked idea 2", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "Parking Lot"},
-			},
-		},
+	// Sub-issues — all open (parking lot status determined via project field lookup)
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Parked idea 1", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Parked idea 2", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -2490,24 +2458,10 @@ func TestRunBranchCloseWithDeps_NoParkingLotConfig(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// Using projectItems with Release field - must include Repository for filter matching
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Parked idea", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "Parking Lot"}, // Uses default value
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Regular issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
+	// Sub-issues — parking lot status determined via project field lookup
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Parked idea", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Regular issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -2558,16 +2512,9 @@ func TestRunBranchCloseWithDeps_ClearsBranchField(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// Using projectItems with Release field - must include Repository for filter matching
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
+	// Sub-issue — open, will be moved to backlog
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -2636,25 +2583,10 @@ func TestRunBranchCloseWithDeps_GetProjectItemIDError_ContinuesWithWarning(t *te
 			State:  "OPEN",
 		},
 	}
-	// Using projectItems with Release field - ISSUE_1 missing projectItemID will trigger warning
-	// Must include Repository for filter matching
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Issue without project item", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Normal issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
+	// Sub-issues — both open, ISSUE_1 will fail project item lookup
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Issue without project item", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Normal issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	// Only ISSUE_2 has a project item ID - ISSUE_1 will fail lookup and show warning
 	mock.projectItemIDs = map[string]string{
@@ -2716,23 +2648,10 @@ func TestRunBranchCloseWithDeps_AllIssuesDone_NoMoveToBacklog(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// All issues are closed (done) - using projectItems with Release field
-	// Must include Repository for filter matching
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Completed work", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Also done", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
+	// Sub-issues — all closed (done)
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Completed work", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Also done", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 
 	cfg := testBranchConfig()
@@ -2785,16 +2704,9 @@ func TestRunBranchCloseWithDeps_DefaultBacklogValue(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// Use projectItems with Release field for filtering - must include Repository
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-				{Field: "Status", Value: "In Progress"},
-			},
-		},
+	// Sub-issue — open, will be moved to backlog
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Incomplete work", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -3328,29 +3240,11 @@ func TestBranchCloseWithDeps_RemovesAssignedLabelFromOpenIssues(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	// 2 open issues + 1 closed issue assigned to the branch
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Open issue 1", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
-		{
-			ID:    "ITEM_2",
-			Issue: &api.Issue{ID: "ISSUE_2", Number: 42, Title: "Open issue 2", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
-		{
-			ID:    "ITEM_3",
-			Issue: &api.Issue{ID: "ISSUE_3", Number: 43, Title: "Done issue", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
+	// 2 open sub-issues + 1 closed sub-issue
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Open issue 1", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_2", Number: 42, Title: "Open issue 2", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
+		{ID: "ISSUE_3", Number: 43, Title: "Done issue", State: "CLOSED", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -3403,14 +3297,9 @@ func TestBranchCloseWithDeps_LabelErrorIsNonBlocking(t *testing.T) {
 			State:  "OPEN",
 		},
 	}
-	mock.projectItems = []api.ProjectItem{
-		{
-			ID:    "ITEM_1",
-			Issue: &api.Issue{ID: "ISSUE_1", Number: 41, Title: "Open issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
-			FieldValues: []api.FieldValue{
-				{Field: "Release", Value: "v1.2.0"},
-			},
-		},
+	// Sub-issue — open, will trigger label removal
+	mock.subIssues = []api.SubIssue{
+		{ID: "ISSUE_1", Number: 41, Title: "Open issue", State: "OPEN", Repository: api.Repository{Owner: "testowner", Name: "testrepo"}},
 	}
 	mock.projectItemIDs = map[string]string{
 		"ISSUE_1": "ITEM_1",
@@ -3437,5 +3326,163 @@ func TestBranchCloseWithDeps_LabelErrorIsNonBlocking(t *testing.T) {
 	err := runBranchCloseWithDeps(cmd, opts, cfg, mock)
 	if err != nil {
 		t.Fatalf("Label error should be non-blocking, got: %v", err)
+	}
+}
+
+func TestRunBranchCloseWithDeps_UsesSubIssuesInsteadOfProjectScan(t *testing.T) {
+	// ARRANGE: Set up tracker with sub-issues (not project items)
+	mock := setupMockForBranch()
+	mock.openIssues = []api.Issue{
+		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
+	}
+	mock.subIssues = []api.SubIssue{
+		{
+			ID:         "ISSUE_A",
+			Number:     10,
+			Title:      "Feature A",
+			State:      "CLOSED",
+			Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+		},
+		{
+			ID:         "ISSUE_B",
+			Number:     11,
+			Title:      "Feature B",
+			State:      "CLOSED",
+			Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+		},
+	}
+
+	cfg := testBranchConfig()
+	cleanup := setupBranchTestDir(t, cfg)
+	defer cleanup()
+
+	cmd, buf := newTestBranchCmd()
+	opts := &branchCloseOptions{branchName: "v1.2.0", yes: true}
+
+	// ACT
+	err := runBranchCloseWithDeps(cmd, opts, cfg, mock)
+
+	// ASSERT
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify GetSubIssues was called with tracker number
+	if len(mock.getSubIssuesCalls) != 1 {
+		t.Fatalf("Expected 1 GetSubIssues call, got %d", len(mock.getSubIssuesCalls))
+	}
+	if mock.getSubIssuesCalls[0].number != 100 {
+		t.Errorf("Expected GetSubIssues for tracker #100, got #%d", mock.getSubIssuesCalls[0].number)
+	}
+
+	// Verify GetProjectItemsMinimal was NOT called
+	if len(mock.getProjectItemsMinimalCalls) != 0 {
+		t.Errorf("Expected 0 GetProjectItemsMinimal calls, got %d", len(mock.getProjectItemsMinimalCalls))
+	}
+
+	// Verify output shows correct issue count
+	output := buf.String()
+	if !strings.Contains(output, "2 done") {
+		t.Errorf("Expected output to mention '2 done', got: %s", output)
+	}
+
+	// Verify tracker was closed
+	if len(mock.closeIssueCalls) != 1 {
+		t.Fatalf("Expected 1 CloseIssue call, got %d", len(mock.closeIssueCalls))
+	}
+}
+
+func TestRunBranchCloseWithDeps_SubIssues_IncompleteMovedToBacklog(t *testing.T) {
+	// ARRANGE: Tracker with mix of done and open sub-issues
+	mock := setupMockForBranch()
+	mock.openIssues = []api.Issue{
+		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
+	}
+	mock.subIssues = []api.SubIssue{
+		{
+			ID:         "ISSUE_A",
+			Number:     10,
+			Title:      "Done Feature",
+			State:      "CLOSED",
+			Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+		},
+		{
+			ID:         "ISSUE_B",
+			Number:     11,
+			Title:      "Incomplete Feature",
+			State:      "OPEN",
+			Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+		},
+	}
+	mock.projectItemIDs = map[string]string{
+		"ISSUE_B": "ITEM_B",
+	}
+
+	cfg := testBranchConfig()
+	cleanup := setupBranchTestDir(t, cfg)
+	defer cleanup()
+
+	cmd, buf := newTestBranchCmd()
+	opts := &branchCloseOptions{branchName: "v1.2.0", yes: true}
+
+	// ACT
+	err := runBranchCloseWithDeps(cmd, opts, cfg, mock)
+
+	// ASSERT
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify output shows 1 done, 1 incomplete
+	output := buf.String()
+	if !strings.Contains(output, "1 done") {
+		t.Errorf("Expected '1 done' in output, got: %s", output)
+	}
+	if !strings.Contains(output, "1 incomplete") {
+		t.Errorf("Expected '1 incomplete' in output, got: %s", output)
+	}
+
+	// Verify GetProject was called (needed for field operations on incomplete issues)
+	// but GetProjectItemsMinimal was NOT called
+	if len(mock.getProjectItemsMinimalCalls) != 0 {
+		t.Errorf("Expected 0 GetProjectItemsMinimal calls, got %d", len(mock.getProjectItemsMinimalCalls))
+	}
+
+	// Verify backlog move: SetProjectItemField should be called for status
+	foundBacklogSet := false
+	for _, call := range mock.setFieldCalls {
+		if call.value == "Backlog" {
+			foundBacklogSet = true
+		}
+	}
+	if !foundBacklogSet {
+		t.Error("Expected incomplete issue to be moved to backlog")
+	}
+}
+
+func TestRunBranchCloseWithDeps_GetSubIssuesError(t *testing.T) {
+	// ARRANGE
+	mock := setupMockForBranch()
+	mock.openIssues = []api.Issue{
+		{ID: "TRACKER_123", Number: 100, Title: "Branch: v1.2.0", State: "OPEN"},
+	}
+	mock.getSubIssuesErr = errors.New("failed to get sub-issues")
+
+	cfg := testBranchConfig()
+	cleanup := setupBranchTestDir(t, cfg)
+	defer cleanup()
+
+	cmd, _ := newTestBranchCmd()
+	opts := &branchCloseOptions{branchName: "v1.2.0", yes: true}
+
+	// ACT
+	err := runBranchCloseWithDeps(cmd, opts, cfg, mock)
+
+	// ASSERT
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to get sub-issues") {
+		t.Errorf("Expected error about sub-issues, got: %v", err)
 	}
 }
