@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 )
 
 // mockTriageClient implements triageClient interface for testing

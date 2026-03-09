@@ -105,8 +105,8 @@ Include:
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/rubrical-studios/gh-pmu/discussions)
-- Check existing [Issues](https://github.com/rubrical-studios/gh-pmu/issues)
+- Open a [Discussion](https://github.com/rubrical-works/gh-pmu/discussions)
+- Check existing [Issues](https://github.com/rubrical-works/gh-pmu/issues)
 
 ## License
 

@@ -25,7 +25,7 @@ func TestInitNonInteractiveMode(t *testing.T) {
 		result := runPMU(t, tmpDir, "init",
 			"--non-interactive",
 			"--source-project", "41",
-			"--repo", "rubrical-studios/gh-pmu-e2e-test",
+			"--repo", "rubrical-works/gh-pmu-e2e-test",
 		)
 
 		assertExitCode(t, result, 0)
@@ -58,8 +58,8 @@ func TestInitNonInteractiveMode(t *testing.T) {
 			if num, ok := project["number"].(int); !ok || num <= 0 {
 				t.Errorf("Expected positive project number, got %v", project["number"])
 			}
-			if project["owner"] != "rubrical-studios" {
-				t.Errorf("Expected owner 'rubrical-studios', got %v", project["owner"])
+			if project["owner"] != "rubrical-works" {
+				t.Errorf("Expected owner 'rubrical-works', got %v", project["owner"])
 			}
 		}
 
@@ -69,8 +69,8 @@ func TestInitNonInteractiveMode(t *testing.T) {
 			t.Error("Config missing 'repositories' section")
 		} else if len(repos) == 0 {
 			t.Error("No repositories configured")
-		} else if repos[0] != "rubrical-studios/gh-pmu-e2e-test" {
-			t.Errorf("Expected repo 'rubrical-studios/gh-pmu-e2e-test', got %v", repos[0])
+		} else if repos[0] != "rubrical-works/gh-pmu-e2e-test" {
+			t.Errorf("Expected repo 'rubrical-works/gh-pmu-e2e-test', got %v", repos[0])
 		}
 
 		// Verify framework defaults to IDPF
@@ -95,7 +95,7 @@ func TestInitNonInteractiveFrameworkNone(t *testing.T) {
 	result := runPMU(t, tmpDir, "init",
 		"--non-interactive",
 		"--source-project", "41",
-		"--repo", "rubrical-studios/gh-pmu-e2e-test",
+		"--repo", "rubrical-works/gh-pmu-e2e-test",
 		"--framework", "none",
 	)
 
@@ -132,8 +132,8 @@ func TestInitNonInteractiveWithOwner(t *testing.T) {
 	result := runPMU(t, tmpDir, "init",
 		"--non-interactive",
 		"--source-project", "41",
-		"--repo", "rubrical-studios/gh-pmu-e2e-test",
-		"--owner", "rubrical-studios",
+		"--repo", "rubrical-works/gh-pmu-e2e-test",
+		"--owner", "rubrical-works",
 	)
 
 	assertExitCode(t, result, 0)
@@ -161,7 +161,7 @@ func TestInitNonInteractiveOverwrite(t *testing.T) {
 	result := runPMU(t, tmpDir, "init",
 		"--non-interactive",
 		"--source-project", "41",
-		"--repo", "rubrical-studios/gh-pmu-e2e-test",
+		"--repo", "rubrical-works/gh-pmu-e2e-test",
 		"--yes",
 	)
 
@@ -176,7 +176,7 @@ func TestInitNonInteractiveOverwrite(t *testing.T) {
 	if strings.Contains(string(configData), "existing") {
 		t.Error("Expected existing config to be overwritten")
 	}
-	if !strings.Contains(string(configData), "rubrical-studios") {
+	if !strings.Contains(string(configData), "rubrical-works") {
 		t.Error("Expected new config to contain repo owner")
 	}
 }
@@ -241,7 +241,7 @@ func TestInitNonInteractiveExistingConfigNoYes(t *testing.T) {
 	result := runPMU(t, tmpDir, "init",
 		"--non-interactive",
 		"--source-project", "41",
-		"--repo", "rubrical-studios/gh-pmu-e2e-test",
+		"--repo", "rubrical-works/gh-pmu-e2e-test",
 	)
 
 	assertExitCode(t, result, 1)

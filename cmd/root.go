@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rubrical-studios/gh-pmu/internal/config"
-	"github.com/rubrical-studios/gh-pmu/internal/defaults"
-	pkgversion "github.com/rubrical-studios/gh-pmu/internal/version"
+	"github.com/rubrical-works/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/defaults"
+	pkgversion "github.com/rubrical-works/gh-pmu/internal/version"
 	"github.com/spf13/cobra"
 )
 

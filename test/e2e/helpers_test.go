@@ -172,7 +172,7 @@ func waitForProjectSync(t *testing.T, cfg *TestConfig, maxRetries int, args []st
 func deleteTestIssue(t *testing.T, issueNum int) {
 	t.Helper()
 
-	repo := "rubrical-studios/gh-pmu-e2e-test"
+	repo := "rubrical-works/gh-pmu-e2e-test"
 
 	// Close the issue first
 	closeCmd := exec.Command("gh", "issue", "close",
@@ -199,7 +199,7 @@ func deleteTestIssue(t *testing.T, issueNum int) {
 func getIssueLabels(t *testing.T, issueNum int) []string {
 	t.Helper()
 
-	repo := "rubrical-studios/gh-pmu-e2e-test"
+	repo := "rubrical-works/gh-pmu-e2e-test"
 	cmd := exec.Command("gh", "issue", "view",
 		"--repo", repo,
 		strconv.Itoa(issueNum),

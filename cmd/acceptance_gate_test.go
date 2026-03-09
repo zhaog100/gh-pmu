@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 	"gopkg.in/yaml.v3"
 )
 

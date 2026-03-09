@@ -11,7 +11,7 @@ import (
 
 	graphql "github.com/cli/shurcooL-graphql"
 
-	"github.com/rubrical-studios/gh-pmu/internal/defaults"
+	"github.com/rubrical-works/gh-pmu/internal/defaults"
 )
 
 // CreateIssue creates a new issue in a repository

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/testutil"
+	"github.com/rubrical-works/gh-pmu/internal/testutil"
 )
 
 // TestRunSubRemove_Integration_UnlinkSubIssue tests unlinking a sub-issue from parent

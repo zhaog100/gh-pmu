@@ -23,9 +23,9 @@ Added `prd`, `bug`, and `enhancement` to the default label set:
 ## Installation
 
 ```bash
-gh extension upgrade rubrical-studios/gh-pmu
+gh extension upgrade rubrical-works/gh-pmu
 ```
 
 ## Full Changelog
 
-https://github.com/rubrical-studios/gh-pmu/compare/v0.13.0...v0.13.1
+https://github.com/rubrical-works/gh-pmu/compare/v0.13.0...v0.13.1

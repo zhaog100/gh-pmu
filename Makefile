@@ -3,7 +3,7 @@
 # Build variables
 BINARY_NAME=gh-pmu
 VERSION?=dev
-LDFLAGS=-ldflags "-X github.com/rubrical-studios/gh-pmu/cmd.version=$(VERSION)"
+LDFLAGS=-ldflags "-X github.com/rubrical-works/gh-pmu/cmd.version=$(VERSION)"
 
 # Go commands
 GO=go

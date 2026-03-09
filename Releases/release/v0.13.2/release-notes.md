@@ -24,9 +24,9 @@ All command help text and documentation now references "Branch" instead of "Rele
 ## Installation
 
 ```bash
-gh extension upgrade rubrical-studios/gh-pmu
+gh extension upgrade rubrical-works/gh-pmu
 ```
 
 ## Full Changelog
 
-https://github.com/rubrical-studios/gh-pmu/compare/v0.13.1...v0.13.2
+https://github.com/rubrical-works/gh-pmu/compare/v0.13.1...v0.13.2

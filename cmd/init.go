@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
-	"github.com/rubrical-studios/gh-pmu/internal/config"
-	"github.com/rubrical-studios/gh-pmu/internal/defaults"
-	"github.com/rubrical-studios/gh-pmu/internal/ui"
+	"github.com/rubrical-works/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/defaults"
+	"github.com/rubrical-works/gh-pmu/internal/ui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -1253,8 +1253,8 @@ func findFieldByName(fields []api.ProjectField, name string) *api.ProjectField {
 // autoCreateProject creates a new project from the IDPF Kanban template.
 // It copies from template project #30, links the repository, and sets default repo.
 func autoCreateProject(cmd *cobra.Command, client *api.Client, u *ui.UI, owner, repo string) (*api.Project, error) {
-	// Template project: rubrical-studios #30 (IDPF Kanban template)
-	const templateOwner = "rubrical-studios"
+	// Template project: rubrical-works #30 (IDPF Kanban template)
+	const templateOwner = "rubrical-works"
 	const templateNumber = 30
 
 	fmt.Fprintln(cmd.OutOrStdout())

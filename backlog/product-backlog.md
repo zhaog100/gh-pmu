@@ -682,7 +682,7 @@ This epic is entirely blocked because it depends on the ability to create projec
 - [x] Lint workflow: golangci-lint + gofmt + go vet
 - [x] Test workflow: Go version matrix + coverage threshold
 - [x] Release workflow: cli/gh-extension-precompile
-- [x] `gh extension install rubrical-studios/gh-pmu` works from release
+- [x] `gh extension install rubrical-works/gh-pmu` works from release
 - [x] README updated with installation instructions
 
 **Story Points:** 5
@@ -744,9 +744,9 @@ This epic is entirely blocked because it depends on the ability to create projec
 │  Configure project management settings  │
 ╰─────────────────────────────────────────╯
 
-✓ Detected repository: rubrical-studios/gh-pmu
+✓ Detected repository: rubrical-works/gh-pmu
 
-⠋ Fetching projects for rubrical-studios...
+⠋ Fetching projects for rubrical-works...
 
 Step 1 of 2: Select Project
 ┌─────────────────────────────────────────┐
@@ -760,7 +760,7 @@ Select [1]:
 ✓ Project: gh-pmu (#11)
 
 Step 2 of 2: Confirm Repository
-Repository [rubrical-studios/gh-pmu]:
+Repository [rubrical-works/gh-pmu]:
 
 ⠋ Fetching project fields...
 
@@ -768,7 +768,7 @@ Repository [rubrical-studios/gh-pmu]:
 │  ✓ Configuration saved                  │
 │                                         │
 │  Project:    gh-pmu (#11)               │
-│  Repository: rubrical-studios/gh-pmu    │
+│  Repository: rubrical-works/gh-pmu    │
 │  Fields:     12 cached                  │
 │  Config:     .gh-pmu.yml                │
 ╰─────────────────────────────────────────╯

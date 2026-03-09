@@ -1,10 +1,10 @@
-version: 1.0.1
+version: 1.1.0
 project:
     name: gh-pmu
     number: 11
-    owner: rubrical-studios
+    owner: rubrical-works
 repositories:
-    - rubrical-studios/gh-pmu
+    - rubrical-works/gh-pmu
 framework: IDPF
 defaults:
     priority: p2
@@ -29,6 +29,7 @@ fields:
 triage:
     estimate:
         query: is:issue is:open -has:estimate
+        apply: {}
         interactive:
             estimate: true
 acceptance:

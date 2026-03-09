@@ -19,8 +19,8 @@ func TestLoad_ValidConfig_ReturnsProjectDetails(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if cfg.Project.Owner != "rubrical-studios" {
-		t.Errorf("Expected owner 'rubrical-studios', got '%s'", cfg.Project.Owner)
+	if cfg.Project.Owner != "rubrical-works" {
+		t.Errorf("Expected owner 'rubrical-works', got '%s'", cfg.Project.Owner)
 	}
 
 	if cfg.Project.Number != 13 {
@@ -40,8 +40,8 @@ func TestLoad_MinimalConfig_ReturnsRequiredFields(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if cfg.Project.Owner != "rubrical-studios" {
-		t.Errorf("Expected owner 'rubrical-studios', got '%s'", cfg.Project.Owner)
+	if cfg.Project.Owner != "rubrical-works" {
+		t.Errorf("Expected owner 'rubrical-works', got '%s'", cfg.Project.Owner)
 	}
 
 	if cfg.Project.Number != 13 {
@@ -86,7 +86,7 @@ func TestValidate_MissingOwner_ReturnsError(t *testing.T) {
 			Number: 13,
 			// Owner is missing
 		},
-		Repositories: []string{"rubrical-studios/gh-pm-test"},
+		Repositories: []string{"rubrical-works/gh-pm-test"},
 	}
 
 	// ACT: Validate the config
@@ -102,10 +102,10 @@ func TestValidate_MissingNumber_ReturnsError(t *testing.T) {
 	// ARRANGE: Config with missing project number
 	cfg := &Config{
 		Project: Project{
-			Owner: "rubrical-studios",
+			Owner: "rubrical-works",
 			// Number is missing (zero value)
 		},
-		Repositories: []string{"rubrical-studios/gh-pm-test"},
+		Repositories: []string{"rubrical-works/gh-pm-test"},
 	}
 
 	// ACT: Validate the config
@@ -121,7 +121,7 @@ func TestValidate_MissingRepositories_ReturnsError(t *testing.T) {
 	// ARRANGE: Config with no repositories
 	cfg := &Config{
 		Project: Project{
-			Owner:  "rubrical-studios",
+			Owner:  "rubrical-works",
 			Number: 13,
 		},
 		Repositories: []string{}, // Empty
@@ -140,10 +140,10 @@ func TestValidate_ValidConfig_ReturnsNil(t *testing.T) {
 	// ARRANGE: Valid config
 	cfg := &Config{
 		Project: Project{
-			Owner:  "rubrical-studios",
+			Owner:  "rubrical-works",
 			Number: 13,
 		},
-		Repositories: []string{"rubrical-studios/gh-pm-test"},
+		Repositories: []string{"rubrical-works/gh-pm-test"},
 	}
 
 	// ACT: Validate the config
@@ -394,8 +394,8 @@ func TestLoadFromDirectory_FindsConfigFile(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if cfg.Project.Owner != "rubrical-studios" {
-		t.Errorf("Expected owner 'rubrical-studios', got '%s'", cfg.Project.Owner)
+	if cfg.Project.Owner != "rubrical-works" {
+		t.Errorf("Expected owner 'rubrical-works', got '%s'", cfg.Project.Owner)
 	}
 }
 
@@ -435,7 +435,7 @@ func TestApplyEnvOverrides_OverridesNumber(t *testing.T) {
 	// ARRANGE: Config and env var
 	cfg := &Config{
 		Project: Project{
-			Owner:  "rubrical-studios",
+			Owner:  "rubrical-works",
 			Number: 13,
 		},
 	}
@@ -454,7 +454,7 @@ func TestApplyEnvOverrides_InvalidNumber_Ignored(t *testing.T) {
 	// ARRANGE: Config and invalid env var
 	cfg := &Config{
 		Project: Project{
-			Owner:  "rubrical-studios",
+			Owner:  "rubrical-works",
 			Number: 13,
 		},
 	}
@@ -588,10 +588,10 @@ func TestLoadFromDirectory_FromSubdir_FindsParentConfig(t *testing.T) {
 	}
 
 	configContent := `project:
-  owner: rubrical-studios
+  owner: rubrical-works
   number: 13
 repositories:
-  - rubrical-studios/gh-pmu
+  - rubrical-works/gh-pmu
 `
 	configPath := filepath.Join(parentDir, ConfigFileName)
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -605,8 +605,8 @@ repositories:
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
-	if cfg.Project.Owner != "rubrical-studios" {
-		t.Errorf("Expected owner 'rubrical-studios', got '%s'", cfg.Project.Owner)
+	if cfg.Project.Owner != "rubrical-works" {
+		t.Errorf("Expected owner 'rubrical-works', got '%s'", cfg.Project.Owner)
 	}
 	if cfg.Project.Number != 13 {
 		t.Errorf("Expected number 13, got %d", cfg.Project.Number)

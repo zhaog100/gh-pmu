@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/api"
 )
 
 // mockSplitClient implements splitClient for testing

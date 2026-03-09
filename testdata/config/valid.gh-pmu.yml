@@ -2,9 +2,9 @@
 project:
   name: gh-pm-test-project
   number: 13
-  owner: rubrical-studios
+  owner: rubrical-works
 repositories:
-  - rubrical-studios/gh-pm-test
+  - rubrical-works/gh-pm-test
 defaults:
   priority: p2
   status: backlog

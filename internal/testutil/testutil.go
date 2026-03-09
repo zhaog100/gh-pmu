@@ -16,7 +16,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/api"
 )
 
 var (

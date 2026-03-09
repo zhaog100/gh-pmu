@@ -162,7 +162,7 @@ gh run list --limit 1 --json status,conclusion,name
     "gh-pmu_0.8.0_windows_arm64.zip",
     "checksums.txt"
   ],
-  "releaseUrl": "https://github.com/rubrical-studios/gh-pmu/releases/tag/v0.8.0"
+  "releaseUrl": "https://github.com/rubrical-works/gh-pmu/releases/tag/v0.8.0"
 }
 ```
 
