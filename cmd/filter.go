@@ -139,18 +139,14 @@ func runFilterWithDeps(cmd *cobra.Command, opts *filterOptions, cfg *config.Conf
 	var items []api.ProjectItem
 	refs := buildIssueRefsFromInput(issues, cfg)
 
-	if len(refs) > 0 {
-		// Use targeted query - fetch only the specific issues we need
-		items, err = client.GetProjectItemsByIssues(project.ID, refs)
-		if err != nil {
-			// Fall back to full fetch if targeted query fails
-			items, err = client.GetProjectItems(project.ID, nil)
-			if err != nil {
-				return fmt.Errorf("failed to get project items: %w", err)
-			}
-		}
-	} else {
-		// No refs could be built - fall back to full fetch
+	if len(refs) == 0 {
+		return fmt.Errorf("no repositories configured — cannot build issue refs for targeted query\nConfigure repositories in .gh-pmu.json or provide issues with URL fields")
+	}
+
+	// Use targeted query - fetch only the specific issues we need
+	items, err = client.GetProjectItemsByIssues(project.ID, refs)
+	if err != nil {
+		// Fall back to full fetch if targeted query fails
 		items, err = client.GetProjectItems(project.ID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get project items: %w", err)
