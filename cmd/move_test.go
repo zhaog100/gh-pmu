@@ -1948,8 +1948,9 @@ func TestRunMoveWithDeps_TargetedQuery_MultipleIssues(t *testing.T) {
 	}
 }
 
-func TestRunMoveWithDeps_RecursiveUsesFullFetch(t *testing.T) {
-	// ARRANGE - Verify that recursive move uses GetProjectItems (full fetch)
+func TestRunMoveWithDeps_RecursiveUsesTargetedQuery(t *testing.T) {
+	// ARRANGE - Verify that recursive move uses GetProjectItemsByIssues (targeted)
+	// instead of GetProjectItems (full scan)
 	mock := newMockMoveClient()
 	mock.project = &api.Project{ID: "proj-1", Number: 1, Title: "Test Project"}
 	mock.projectItems = []api.ProjectItem{
@@ -1966,7 +1967,7 @@ func TestRunMoveWithDeps_RecursiveUsesFullFetch(t *testing.T) {
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 
-	opts := &moveOptions{status: "in_progress", recursive: true, yes: true}
+	opts := &moveOptions{status: "in_progress", recursive: true, yes: true, depth: 10}
 
 	// ACT
 	err := runMoveWithDeps(cmd, []string{"1"}, opts, cfg, mock)
@@ -1975,11 +1976,16 @@ func TestRunMoveWithDeps_RecursiveUsesFullFetch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if mock.getProjectItemsCalls != 1 {
-		t.Errorf("Expected GetProjectItems to be called once for recursive mode, got %d", mock.getProjectItemsCalls)
+	// Should use GetProjectItemsByIssues (targeted), NOT GetProjectItems (full scan)
+	if mock.getProjectItemsCalls != 0 {
+		t.Errorf("Expected GetProjectItems to NOT be called for recursive mode, got %d calls", mock.getProjectItemsCalls)
 	}
-	if mock.getProjectItemsByIssuesCalls != 0 {
-		t.Errorf("Expected GetProjectItemsByIssues to NOT be called for recursive mode, got %d", mock.getProjectItemsByIssuesCalls)
+	if mock.getProjectItemsByIssuesCalls == 0 {
+		t.Error("Expected GetProjectItemsByIssues to be called for recursive mode")
+	}
+	// Should have updated both parent and child
+	if len(mock.fieldUpdates) != 2 {
+		t.Errorf("Expected 2 field updates (parent + child), got %d", len(mock.fieldUpdates))
 	}
 }
 

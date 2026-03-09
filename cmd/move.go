@@ -203,17 +203,10 @@ func runMoveWithDeps(cmd *cobra.Command, args []string, opts *moveOptions, cfg *
 		issueRefs = append(issueRefs, api.IssueRef{Owner: owner, Repo: repo, Number: number})
 	}
 
-	// Get project items - use targeted query when not recursive, full fetch otherwise
-	// Recursive mode needs full fetch because sub-issues might not be in the initial list
+	// Get project items using targeted queries (never full project scan)
 	var items []api.ProjectItem
-	if opts.recursive {
-		// Full fetch needed for recursive operations
-		items, err = client.GetProjectItems(project.ID, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get project items: %w", err)
-		}
-	} else if len(issueRefs) > 0 {
-		// Targeted query for specific issues (more efficient)
+	if len(issueRefs) > 0 {
+		// Targeted query for specific issues
 		items, err = client.GetProjectItemsByIssues(project.ID, issueRefs)
 		if err != nil {
 			// Fall back to full fetch if targeted query fails
@@ -231,10 +224,9 @@ func runMoveWithDeps(cmd *cobra.Command, args []string, opts *moveOptions, cfg *
 	}
 
 	// Build maps for quick lookup: item IDs, field values, and issue data (title/body)
-	// This allows batch processing without additional API calls for issues in the project
 	itemIDMap := make(map[string]string)
 	itemFieldsMap := make(map[string][]api.FieldValue)
-	itemDataMap := make(map[string]*api.Issue) // title, body from project items
+	itemDataMap := make(map[string]*api.Issue)
 	for _, item := range items {
 		if item.Issue != nil {
 			key := fmt.Sprintf("%s/%s#%d", item.Issue.Repository.Owner, item.Issue.Repository.Name, item.Issue.Number)
@@ -293,10 +285,43 @@ func runMoveWithDeps(cmd *cobra.Command, args []string, opts *moveOptions, cfg *
 		})
 
 		if opts.recursive {
+			// Collect sub-issue tree (maps may be partially populated from root query)
 			subIssues, err := collectSubIssuesRecursive(client, owner, repo, number, itemIDMap, itemFieldsMap, itemDataMap, 1, opts.depth)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to collect sub-issues for #%d: %v\n", number, err)
 			} else {
+				// Enrich sub-issues not yet in the maps with targeted project item query
+				var missingRefs []api.IssueRef
+				for _, sub := range subIssues {
+					subKey := fmt.Sprintf("%s/%s#%d", sub.Owner, sub.Repo, sub.Number)
+					if _, exists := itemIDMap[subKey]; !exists {
+						missingRefs = append(missingRefs, api.IssueRef{Owner: sub.Owner, Repo: sub.Repo, Number: sub.Number})
+					}
+				}
+				if len(missingRefs) > 0 {
+					subItems, serr := client.GetProjectItemsByIssues(project.ID, missingRefs)
+					if serr == nil {
+						for _, item := range subItems {
+							if item.Issue != nil {
+								key := fmt.Sprintf("%s/%s#%d", item.Issue.Repository.Owner, item.Issue.Repository.Name, item.Issue.Number)
+								itemIDMap[key] = item.ID
+								itemFieldsMap[key] = item.FieldValues
+								itemDataMap[key] = item.Issue
+							}
+						}
+						// Re-populate sub-issue item IDs from enriched maps
+						for i := range subIssues {
+							subKey := fmt.Sprintf("%s/%s#%d", subIssues[i].Owner, subIssues[i].Repo, subIssues[i].Number)
+							subIssues[i].ItemID = itemIDMap[subKey]
+							subIssues[i].FieldValues = itemFieldsMap[subKey]
+							if data, ok := itemDataMap[subKey]; ok {
+								subIssues[i].Body = data.Body
+								subIssues[i].IssueID = data.ID
+								subIssues[i].State = data.State
+							}
+						}
+					}
+				}
 				issuesToUpdate = append(issuesToUpdate, subIssues...)
 			}
 		}
