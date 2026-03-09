@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 )
 
 // mockFilterClient implements filterClient for testing
@@ -510,7 +510,8 @@ func TestRunFilterWithDeps_GetProjectError(t *testing.T) {
 	mock := newMockFilterClient()
 	mock.getProjectErr = errors.New("project not found")
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Test"}]`)
@@ -529,11 +530,13 @@ func TestRunFilterWithDeps_GetProjectError(t *testing.T) {
 	}
 }
 
-func TestRunFilterWithDeps_GetProjectItemsError(t *testing.T) {
+func TestRunFilterWithDeps_GetProjectItemsError_OnFallback(t *testing.T) {
 	mock := newMockFilterClient()
+	mock.getProjectItemsByIssuesErr = errors.New("targeted query failed")
 	mock.getProjectItemsErr = errors.New("items not found")
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"owner/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Test"}]`)
@@ -555,7 +558,8 @@ func TestRunFilterWithDeps_GetProjectItemsError(t *testing.T) {
 func TestRunFilterWithDeps_EmptyInput(t *testing.T) {
 	mock := newMockFilterClient()
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, "")
@@ -577,7 +581,8 @@ func TestRunFilterWithDeps_EmptyInput(t *testing.T) {
 func TestRunFilterWithDeps_InvalidJSON(t *testing.T) {
 	mock := newMockFilterClient()
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, "not valid json")
@@ -607,7 +612,8 @@ func TestRunFilterWithDeps_NoMatchingIssues(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Test Issue", "state": "open"}]`)
@@ -647,7 +653,8 @@ func TestRunFilterWithDeps_FilterByStatus(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 		Fields: map[string]config.Field{
 			"status": {
 				Field:  "Status",
@@ -680,7 +687,8 @@ func TestRunFilterWithDeps_FilterByPriority(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 		Fields: map[string]config.Field{
 			"priority": {
 				Field:  "Priority",
@@ -709,7 +717,8 @@ func TestRunFilterWithDeps_FilterByAssignee(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Issue 1", "state": "open", "assignees": [{"login": "user1"}]}]`)
@@ -732,7 +741,8 @@ func TestRunFilterWithDeps_FilterByLabel(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Issue 1", "state": "open", "labels": [{"name": "bug"}]}]`)
@@ -755,7 +765,8 @@ func TestRunFilterWithDeps_JSONOutput(t *testing.T) {
 		},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	stdin := createTempStdin(t, `[{"number": 1, "title": "Issue 1", "state": "open"}]`)
@@ -782,7 +793,8 @@ func TestRunFilterWithDeps_UsesTargetedQuery_WithURL(t *testing.T) {
 		{Issue: &api.Issue{Number: 2}},
 	}
 	cfg := &config.Config{
-		Project: config.Project{Owner: "test-org", Number: 1},
+		Project:      config.Project{Owner: "test-org", Number: 1},
+		Repositories: []string{"test-org/repo"},
 	}
 
 	// Input with URLs allows targeted query
@@ -889,12 +901,9 @@ func TestRunFilterWithDeps_FallsBackToFullFetch_OnTargetedError(t *testing.T) {
 	}
 }
 
-func TestRunFilterWithDeps_FallsBackToFullFetch_NoRepoInfo(t *testing.T) {
-	// ARRANGE - No URL and no config repo - falls back to full fetch
+func TestRunFilterWithDeps_ErrorsWhenNoRefsBuilt(t *testing.T) {
+	// ARRANGE - No URL and no config repo - should error (not silently fall back)
 	mock := newMockFilterClient()
-	mock.projectItems = []api.ProjectItem{
-		{Issue: &api.Issue{Number: 1}},
-	}
 	cfg := &config.Config{
 		Project:      config.Project{Owner: "test-org", Number: 1},
 		Repositories: []string{}, // No repos configured
@@ -911,16 +920,16 @@ func TestRunFilterWithDeps_FallsBackToFullFetch_NoRepoInfo(t *testing.T) {
 	// ACT
 	err := runFilterWithDeps(cmd, opts, cfg, mock, stdin)
 
-	// ASSERT
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	// ASSERT - should return error instead of silently falling back to full scan
+	if err == nil {
+		t.Fatal("Expected error when no issue refs can be built")
 	}
-	// No refs could be built, should use full fetch
-	if mock.getProjectItemsByIssuesCalls != 0 {
-		t.Errorf("Expected 0 GetProjectItemsByIssues calls, got %d", mock.getProjectItemsByIssuesCalls)
+	if !strings.Contains(err.Error(), "no repositories configured") {
+		t.Errorf("Expected 'no repositories configured' error, got: %v", err)
 	}
-	if mock.getProjectItemsCalls != 1 {
-		t.Errorf("Expected 1 GetProjectItems call, got %d", mock.getProjectItemsCalls)
+	// Should NOT have called GetProjectItems (no silent fallback)
+	if mock.getProjectItemsCalls != 0 {
+		t.Errorf("Expected 0 GetProjectItems calls (no silent fallback), got %d", mock.getProjectItemsCalls)
 	}
 }
 

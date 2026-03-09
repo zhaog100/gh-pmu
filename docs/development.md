@@ -12,7 +12,7 @@ Build, test, and contribute to gh-pmu.
 
 ```bash
 # Clone the repository
-git clone https://github.com/rubrical-studios/gh-pmu.git
+git clone https://github.com/rubrical-works/gh-pmu.git
 cd gh-pmu
 
 # Build
@@ -90,9 +90,9 @@ Integration tests run against real GitHub API with test fixtures.
 
 **Setup:**
 ```bash
-export TEST_PROJECT_OWNER="rubrical-studios"
+export TEST_PROJECT_OWNER="rubrical-works"
 export TEST_PROJECT_NUMBER="99"
-export TEST_REPO_OWNER="rubrical-studios"
+export TEST_REPO_OWNER="rubrical-works"
 export TEST_REPO_NAME="gh-pmu-test"
 ```
 
@@ -108,9 +108,9 @@ gh workflow run integration-tests.yml -f test_type=all
 
 ## Test Coverage
 
-[![codecov](https://codecov.io/gh/rubrical-studios/gh-pmu/graph/badge.svg)](https://codecov.io/gh/rubrical-studios/gh-pmu)
+[![codecov](https://codecov.io/gh/rubrical-works/gh-pmu/graph/badge.svg)](https://codecov.io/gh/rubrical-works/gh-pmu)
 
-Coverage reports are available on [Codecov](https://codecov.io/gh/rubrical-studios/gh-pmu).
+Coverage reports are available on [Codecov](https://codecov.io/gh/rubrical-works/gh-pmu).
 
 Coverage is uploaded automatically on every CI run. Click the badge above for detailed per-file breakdown.
 

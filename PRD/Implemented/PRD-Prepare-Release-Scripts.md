@@ -223,7 +223,7 @@ Create a suite of JavaScript scripts in `.claude/scripts/` that automate the mec
   "tag": "v0.8.0",
   "jobs": [...],
   "assets": ["gh-pmu_0.8.0_darwin_amd64.tar.gz", ...],
-  "releaseUrl": "https://github.com/rubrical-studios/gh-pmu/releases/tag/v0.8.0"
+  "releaseUrl": "https://github.com/rubrical-works/gh-pmu/releases/tag/v0.8.0"
 }
 ```
 

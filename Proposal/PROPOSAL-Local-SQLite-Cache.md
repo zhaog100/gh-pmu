@@ -330,7 +330,7 @@ jobs:
 {
   "version": 1,
   "updated_at": "2024-12-24T10:00:00Z",
-  "repo": "rubrical-studios/gh-pmu",
+  "repo": "rubrical-works/gh-pmu",
   "releases": [
     {
       "number": 430,
@@ -527,7 +527,7 @@ The cache database is created automatically on first use:
 
 ```bash
 # User installs gh-pmu (SQLite embedded in binary)
-gh extension install rubrical-studios/gh-pmu
+gh extension install rubrical-works/gh-pmu
 
 # First command that uses cache creates the database
 gh pmu release list

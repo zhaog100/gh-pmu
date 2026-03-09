@@ -4,14 +4,14 @@
 
 github:
   # Test repository
-  repo: rubrical-studios/gh-pmu-e2e-test
+  repo: rubrical-works/gh-pmu-e2e-test
 
   # Test project
   project:
-    owner: rubrical-studios
+    owner: rubrical-works
     number: 41
     id: PVT_kwHOAATLPs4BM2I6
-    url: https://github.com/users/rubrical-studios/projects/41
+    url: https://github.com/users/rubrical-works/projects/41
 
   # Custom fields added to test project
   fields:
@@ -24,8 +24,8 @@ github:
 
 # Instructions for running integration tests:
 # 1. Set environment variables:
-#    TEST_PROJECT_OWNER=rubrical-studios
+#    TEST_PROJECT_OWNER=rubrical-works
 #    TEST_PROJECT_NUMBER=41
-#    TEST_REPO_OWNER=rubrical-studios
+#    TEST_REPO_OWNER=rubrical-works
 #    TEST_REPO_NAME=gh-pmu-e2e-test
 # 2. Run: go test -tags=integration ./cmd/...

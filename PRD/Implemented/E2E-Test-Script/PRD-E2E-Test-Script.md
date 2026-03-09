@@ -19,7 +19,7 @@ This PRD defines the implementation of a Go-based end-to-end (E2E) test suite th
 
 **Test Infrastructure:**
 - Test Project: #41 (IDPF-gh-pmu-testing) - Private
-- Test Repo: `rubrical-studios/gh-pmu-e2e-test` - Private
+- Test Repo: `rubrical-works/gh-pmu-e2e-test` - Private
 
 ---
 
@@ -364,7 +364,7 @@ cmd/create     → test/e2e/workflow_test.go
 | Issue #551 | Reference | Bug that E2E would have caught |
 | Issue #555 | Tracking | This proposal's tracking issue |
 | Test Project #41 | Infrastructure | Must exist with fields configured |
-| Test Repo | Infrastructure | `rubrical-studios/gh-pmu-e2e-test` |
+| Test Repo | Infrastructure | `rubrical-works/gh-pmu-e2e-test` |
 | Go 1.22+ | Technology | Required for build and coverage |
 
 ---

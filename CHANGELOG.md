@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-09
+
+### Changed
+- Rebranded from "Project Management Unified" to "Praxis Management Utility" — PMU acronym unchanged (#698)
+- Renamed organization from rubrical-studios to rubrical-works (#736)
+- Made `.gh-pmu.json` the primary config file with `.gh-pmu.yml` as fallback (#737)
+- Updated `gh pmu init` display strings to reference `.gh-pmu.json` (#735)
+- Updated LICENSE copyright to rubrical-works 2026 (#698)
+
+### Optimized
+- `gh pmu list --state all` uses dual search calls (open + closed) instead of full project scan (#740)
+- `gh pmu filter` eliminates dead-code `GetProjectItems` fallback; errors when no repos configured (#741)
+- `gh pmu board --state all` uses dual search calls instead of full project scan (#742)
+- `gh pmu move --recursive` resolves sub-issues via targeted API instead of full project scan (#743)
+- `gh pmu branch current` optimized with active label lookup and `--json` support; removed `--refresh` (#738)
+- `gh pmu branch close` optimized to use tracker sub-issues instead of full project scan (#739)
+
 ## [1.1.0] - 2026-03-03
 
 ### Added
@@ -924,15 +941,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.1] - 2025-12-09
 
 ### Changed
-- Repository moved from `scooter-indie/gh-pmu` to `rubrical-studios/gh-pmu` (#254)
-- Installation command updated: `gh extension install rubrical-studios/gh-pmu`
-- Go module path updated to `github.com/rubrical-studios/gh-pmu`
+- Repository moved from `scooter-indie/gh-pmu` to `rubrical-works/gh-pmu` (#254)
+- Installation command updated: `gh extension install rubrical-works/gh-pmu`
+- Go module path updated to `github.com/rubrical-works/gh-pmu`
 
 ### Note for Existing Users
 Existing installations will continue to work via GitHub redirect. For a clean setup, reinstall:
 ```bash
 gh extension remove gh-pmu
-gh extension install rubrical-studios/gh-pmu
+gh extension install rubrical-works/gh-pmu
 ```
 
 ## [0.3.0] - 2025-12-08
@@ -1182,43 +1199,43 @@ gh extension install rubrical-studios/gh-pmu
 
 These limitations led to removing Epic 2 (Project Templates) from scope.
 
-[Unreleased]: https://github.com/rubrical-studios/gh-pmu/compare/v0.15.1...HEAD
-[0.15.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.15.0...v0.15.1
-[0.8.3]: https://github.com/rubrical-studios/gh-pmu/compare/v0.8.2...v0.8.3
-[0.8.2]: https://github.com/rubrical-studios/gh-pmu/compare/v0.8.1...v0.8.2
-[0.8.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.5...v0.8.0
-[0.7.5]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.4...v0.7.5
-[0.7.4]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.3...v0.7.4
-[0.7.3]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.2...v0.7.3
-[0.7.2]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.1...v0.7.2
-[0.7.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.7.0...v0.7.1
-[0.7.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.5.3...v0.6.0
-[0.5.3]: https://github.com/rubrical-studios/gh-pmu/compare/v0.5.2...v0.5.3
-[0.5.2]: https://github.com/rubrical-studios/gh-pmu/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.5.0...v0.5.1
-[0.5.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.5...v0.5.0
-[0.4.5]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.4...v0.4.5
-[0.4.4]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.3...v0.4.4
-[0.4.3]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.2...v0.4.3
-[0.4.2]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.1...v0.4.2
-[0.4.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.3.1...v0.4.0
-[0.3.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.13...v0.3.0
-[0.2.13]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.12...v0.2.13
-[0.2.12]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.11...v0.2.12
-[0.2.11]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.10...v0.2.11
-[0.2.10]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.9...v0.2.10
-[0.2.9]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.8...v0.2.9
-[0.2.8]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.7...v0.2.8
-[0.2.7]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.6...v0.2.7
-[0.2.6]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.4...v0.2.5
-[0.2.4]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.3...v0.2.4
-[0.2.3]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/rubrical-studios/gh-pmu/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/rubrical-studios/gh-pmu/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/rubrical-studios/gh-pmu/releases/tag/v0.1.0
+[Unreleased]: https://github.com/rubrical-works/gh-pmu/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.15.0...v0.15.1
+[0.8.3]: https://github.com/rubrical-works/gh-pmu/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/rubrical-works/gh-pmu/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.5...v0.8.0
+[0.7.5]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.4...v0.7.5
+[0.7.4]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.3...v0.7.4
+[0.7.3]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.2...v0.7.3
+[0.7.2]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.5.3...v0.6.0
+[0.5.3]: https://github.com/rubrical-works/gh-pmu/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/rubrical-works/gh-pmu/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.5...v0.5.0
+[0.4.5]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.4...v0.4.5
+[0.4.4]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.3...v0.4.4
+[0.4.3]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.13...v0.3.0
+[0.2.13]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.12...v0.2.13
+[0.2.12]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.11...v0.2.12
+[0.2.11]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.10...v0.2.11
+[0.2.10]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.9...v0.2.10
+[0.2.9]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.8...v0.2.9
+[0.2.8]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.6...v0.2.7
+[0.2.6]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/rubrical-works/gh-pmu/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/rubrical-works/gh-pmu/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/rubrical-works/gh-pmu/releases/tag/v0.1.0

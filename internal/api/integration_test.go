@@ -7,14 +7,14 @@ import (
 )
 
 // Integration tests use the real test project:
-// - Owner: rubrical-studios
+// - Owner: rubrical-works
 // - Project: gh-pm-test-project (#13)
-// - Repo: rubrical-studios/gh-pm-test
+// - Repo: rubrical-works/gh-pm-test
 //
 // Run with: go test -tags=integration ./internal/api/...
 
 const (
-	testOwner         = "rubrical-studios"
+	testOwner         = "rubrical-works"
 	testProjectNumber = 13
 	testRepo          = "gh-pm-test"
 )

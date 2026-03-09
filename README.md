@@ -1,13 +1,13 @@
 # gh-pmu
 
-[![CI](https://github.com/rubrical-studios/gh-pmu/actions/workflows/ci.yml/badge.svg)](https://github.com/rubrical-studios/gh-pmu/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/rubrical-studios/gh-pmu)](https://goreportcard.com/report/github.com/rubrical-studios/gh-pmu)
-[![Release](https://img.shields.io/github/v/release/rubrical-studios/gh-pmu)](https://github.com/rubrical-studios/gh-pmu/releases/latest)
-[![License](https://img.shields.io/github/license/rubrical-studios/gh-pmu)](LICENSE)
+[![CI](https://github.com/rubrical-works/gh-pmu/actions/workflows/ci.yml/badge.svg)](https://github.com/rubrical-works/gh-pmu/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rubrical-works/gh-pmu)](https://goreportcard.com/report/github.com/rubrical-works/gh-pmu)
+[![Release](https://img.shields.io/github/v/release/rubrical-works/gh-pmu)](https://github.com/rubrical-works/gh-pmu/releases/latest)
+[![License](https://img.shields.io/github/license/rubrical-works/gh-pmu)](LICENSE)
 
-**P**roject **M**anagement **U**nified — a GitHub CLI extension for project management and sub-issue hierarchy.
+**P**raxis **M**anagement **U**tility — a GitHub CLI extension for project workflows, sub-issue hierarchies, and batch operations.
 
-> **Note:** gh-pmu is designed for **Kanban-style GitHub Projects** with status-based columns (Backlog, In Progress, In Review, Done). It integrates seamlessly with the [IDPF-Praxis](https://github.com/rubrical-studios/idpf-praxis-dist) framework for structured development workflows, but works standalone without any framework.
+> **Note:** gh-pmu is designed for **Kanban-style GitHub Projects** with status-based columns (Backlog, In Progress, In Review, Done). It integrates seamlessly with the [IDPF-Praxis](https://github.com/rubrical-works/idpf-praxis-dist) framework for structured development workflows, but works standalone without any framework.
 
 ## Features
 
@@ -26,7 +26,7 @@
 ## Installation
 
 ```bash
-gh extension install rubrical-studios/gh-pmu
+gh extension install rubrical-works/gh-pmu
 ```
 
 ## Upgrade
@@ -61,7 +61,7 @@ gh pmu branch close
 
 ## Standalone Usage
 
-`gh pmu` works as a standalone tool without any framework integration. The optional `framework` field in `.gh-pmu.yml` enables workflow restrictions when used with process frameworks like [IDPF](https://github.com/rubrical-studios/idpf-praxis-dist).
+`gh pmu` works as a standalone tool without any framework integration. The optional `framework` field in `.gh-pmu.yml` enables workflow restrictions when used with process frameworks like [IDPF](https://github.com/rubrical-works/idpf-praxis-dist).
 
 **Standalone (default):**
 - All commands work normally

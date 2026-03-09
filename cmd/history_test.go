@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 )
 
 func TestNewHistoryCommand(t *testing.T) {

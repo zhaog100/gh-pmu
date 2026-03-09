@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/testutil"
+	"github.com/rubrical-works/gh-pmu/internal/testutil"
 )
 
 // TestRunSplit_Integration_FromBodyChecklist tests splitting from issue body checklist

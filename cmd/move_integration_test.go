@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/testutil"
+	"github.com/rubrical-works/gh-pmu/internal/testutil"
 )
 
 // TestRunMove_Integration_ChangeStatus tests changing --status

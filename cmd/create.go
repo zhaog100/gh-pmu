@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
-	"github.com/rubrical-studios/gh-pmu/internal/config"
-	"github.com/rubrical-studios/gh-pmu/internal/ui"
+	"github.com/rubrical-works/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/ui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

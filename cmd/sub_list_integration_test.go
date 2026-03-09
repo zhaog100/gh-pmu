@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/testutil"
+	"github.com/rubrical-works/gh-pmu/internal/testutil"
 )
 
 // TestRunSubList_Integration_ListSubIssues tests listing sub-issues of a parent

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/testutil"
+	"github.com/rubrical-works/gh-pmu/internal/testutil"
 )
 
 // TestRunList_Integration_ListAll tests listing all items from the project

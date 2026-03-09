@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/api"
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/api"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 )
 
 func TestInitCommand_Exists(t *testing.T) {
@@ -294,8 +294,8 @@ func TestSplitRepository(t *testing.T) {
 	}{
 		{
 			name:          "valid owner/repo format",
-			input:         "rubrical-studios/gh-pmu",
-			expectedOwner: "rubrical-studios",
+			input:         "rubrical-works/gh-pmu",
+			expectedOwner: "rubrical-works",
 			expectedName:  "gh-pmu",
 		},
 		{
@@ -1499,8 +1499,8 @@ func TestInitNonInteractive_ExistingConfigWithoutYes(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Write existing config
-	configPath := filepath.Join(tmpDir, ".gh-pmu.yml")
-	if err := os.WriteFile(configPath, []byte("project:\n  owner: test\n"), 0644); err != nil {
+	configPath := filepath.Join(tmpDir, ".gh-pmu.json")
+	if err := os.WriteFile(configPath, []byte(`{"project":{"owner":"test"}}`), 0644); err != nil {
 		t.Fatalf("Failed to write existing config: %v", err)
 	}
 
@@ -1674,7 +1674,7 @@ func TestWriteConfig_CreatesJSONCompanion(t *testing.T) {
 	}
 
 	// Verify JSON companion exists
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		t.Fatalf("Expected JSON companion to exist: %v", err)
@@ -1719,7 +1719,7 @@ func seedAcceptance(t *testing.T, dir, version string) {
 		t.Fatalf("Failed to marshal seed config: %v", err)
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(filepath.Join(dir, config.ConfigFileNameJSON), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, config.ConfigFileName), data, 0644); err != nil {
 		t.Fatalf("Failed to write seed config: %v", err)
 	}
 }
@@ -1753,7 +1753,7 @@ func TestWriteConfigWithMetadata_PreservesAcceptance_PatchVersion(t *testing.T) 
 	}
 
 	// Read the JSON output and check acceptance
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		t.Fatalf("Failed to read JSON config: %v", err)
@@ -1802,7 +1802,7 @@ func TestWriteConfigWithMetadata_ClearsAcceptance_MajorVersion(t *testing.T) {
 		t.Fatalf("writeConfigWithMetadata failed: %v", err)
 	}
 
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		t.Fatalf("Failed to read JSON config: %v", err)
@@ -1851,7 +1851,7 @@ func TestWriteConfigWithMetadata_ClearsAcceptance_MinorVersion(t *testing.T) {
 		t.Fatalf("writeConfigWithMetadata failed: %v", err)
 	}
 
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		t.Fatalf("Failed to read JSON config: %v", err)
@@ -1889,7 +1889,7 @@ func TestWriteConfigWithMetadata_PreservesAcceptance_SameVersion(t *testing.T) {
 		t.Fatalf("writeConfigWithMetadata failed: %v", err)
 	}
 
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		t.Fatalf("Failed to read JSON config: %v", err)

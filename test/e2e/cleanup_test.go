@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const testRepo = "rubrical-studios/gh-pmu-e2e-test"
+const testRepo = "rubrical-works/gh-pmu-e2e-test"
 
 // TestCleanupE2EIssues cleans up any leftover E2E test issues.
 // This test only runs when E2E_CLEANUP=true is set.

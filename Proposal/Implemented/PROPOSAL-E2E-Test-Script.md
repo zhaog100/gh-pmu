@@ -16,7 +16,7 @@ This proposal outlines the implementation of a Go-based end-to-end (E2E) test su
 | Resource | Details | Status |
 |----------|---------|--------|
 | **Test Project** | #41 (IDPF-gh-pmu-testing) - Private | ✅ Verified |
-| **Test Repo** | `rubrical-studios/gh-pmu-e2e-test` - Private | ✅ Verified |
+| **Test Repo** | `rubrical-works/gh-pmu-e2e-test` - Private | ✅ Verified |
 
 > **Note:** Infrastructure verified 2026-01-17. Fields (Release, Microsprint) created via `gh pmu init`.
 
@@ -128,11 +128,11 @@ func setupTestConfig(t *testing.T) string {
     tempDir := t.TempDir()
 
     config := `project:
-  owner: rubrical-studios
+  owner: rubrical-works
   number: 41
 
 repositories:
-  - rubrical-studios/gh-pmu-e2e-test
+  - rubrical-works/gh-pmu-e2e-test
 
 fields:
   status:
@@ -800,8 +800,8 @@ e2e:
 - Issue #551: Batch mutation bug (would be caught by E2E)
 - Issue #555: This proposal tracking issue
 - Existing test utilities: `internal/testutil/testutil.go`
-- Test project: https://github.com/users/rubrical-studios/projects/41
-- Test repo: https://github.com/rubrical-studios/gh-pmu-e2e-test
+- Test project: https://github.com/users/rubrical-works/projects/41
+- Test repo: https://github.com/rubrical-works/gh-pmu-e2e-test
 
 ---
 

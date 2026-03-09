@@ -332,7 +332,7 @@ This is stored in `.gh-pmu.yml`:
 
 ```yaml
 project:
-  owner: rubrical-studios
+  owner: rubrical-works
   number: 11
 framework: IDPF  # or "none"
 ```
@@ -396,9 +396,9 @@ func validateStatusTransition(cfg *Config, issue *Issue, fromStatus, toStatus st
 ```
 $ gh pmu init
 
-? Project owner: rubrical-studios
+? Project owner: rubrical-works
 ? Project number: 11
-? Repository: rubrical-studios/gh-pmu
+? Repository: rubrical-works/gh-pmu
 ? Are you using the IDPF framework? (y/n): y
 
 Scanning for active releases...
@@ -440,9 +440,9 @@ Scanning for active releases...
 ```
 $ gh pmu init
 
-? Project owner: rubrical-studios
+? Project owner: rubrical-works
 ? Project number: 11
-? Repository: rubrical-studios/gh-pmu
+? Repository: rubrical-works/gh-pmu
 ? Are you using the IDPF framework? (y/n): n
 
 ✓ Configuration saved to .gh-pmu.yml
@@ -481,7 +481,7 @@ func discoverActiveReleases(client *api.Client, owner, repo string) ([]Release, 
 
 ```yaml
 project:
-  owner: rubrical-studios
+  owner: rubrical-works
   number: 11
 framework: IDPF
 releases:

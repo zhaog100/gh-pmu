@@ -1,6 +1,6 @@
 package cmd
 
-import "github.com/rubrical-studios/gh-pmu/internal/api"
+import "github.com/rubrical-works/gh-pmu/internal/api"
 
 // Field name constants for project fields.
 // The Branch field was previously named Release. For backward compatibility,

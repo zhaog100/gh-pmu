@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rubrical-studios/gh-pmu/internal/config"
+	"github.com/rubrical-works/gh-pmu/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -200,7 +200,7 @@ func TestAcceptCommand_ProducesJSONCompanion(t *testing.T) {
 	}
 
 	// Verify JSON companion was created
-	jsonPath := filepath.Join(tmpDir, config.ConfigFileNameJSON)
+	jsonPath := filepath.Join(tmpDir, config.ConfigFileName)
 	if _, err := os.Stat(jsonPath); os.IsNotExist(err) {
 		t.Fatal("Expected JSON companion to be created by accept command")
 	}

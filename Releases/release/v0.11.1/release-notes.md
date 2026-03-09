@@ -49,4 +49,4 @@ gh extension upgrade gh-pmu
 
 ## Full Changelog
 
-See [CHANGELOG.md](https://github.com/rubrical-studios/gh-pmu/blob/main/CHANGELOG.md) for complete details.
+See [CHANGELOG.md](https://github.com/rubrical-works/gh-pmu/blob/main/CHANGELOG.md) for complete details.

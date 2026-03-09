@@ -13,10 +13,10 @@ import (
 const testConfig = `project:
     name: IDPF-gh-pmu-testing
     number: 41
-    owner: rubrical-studios
+    owner: rubrical-works
 framework: IDPF-Agile
 repositories:
-    - rubrical-studios/gh-pmu-e2e-test
+    - rubrical-works/gh-pmu-e2e-test
 defaults:
     priority: p2
     status: backlog

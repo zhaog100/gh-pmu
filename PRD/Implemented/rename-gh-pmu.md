@@ -37,7 +37,7 @@ The current command name `gh pm` conflicts with the existing `gh-pm` extension b
 | Location | Current | New |
 |----------|---------|-----|
 | `main.go` | `gh-pm` | `gh-pmu` |
-| `go.mod` | `github.com/rubrical-studios/gh-pm` | `github.com/rubrical-studios/gh-pmu` |
+| `go.mod` | `github.com/rubrical-works/gh-pm` | `github.com/rubrical-works/gh-pmu` |
 | Binary output | `gh-pm` | `gh-pmu` |
 
 ### 2. Command Help Text

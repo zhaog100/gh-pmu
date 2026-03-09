@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/rubrical-studios/gh-pmu/cmd"
+	"github.com/rubrical-works/gh-pmu/cmd"
 )
 
 func main() {

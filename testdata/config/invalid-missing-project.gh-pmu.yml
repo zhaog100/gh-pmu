@@ -1,5 +1,5 @@
 # Invalid: missing project section
 repositories:
-  - rubrical-studios/gh-pm-test
+  - rubrical-works/gh-pm-test
 defaults:
   priority: p2
