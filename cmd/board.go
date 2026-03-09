@@ -149,45 +149,54 @@ func runBoardWithDeps(cmd *cobra.Command, opts *boardOptions, cfg *config.Config
 
 	var items []api.BoardItem
 
-	// Determine if we can use the optimized Search API path
-	// Search API supports state filtering server-side, which is much more efficient
-	// when we only want open issues (the common case)
-	useSearchAPI := repoFilter != "" && opts.state != "all"
+	// Determine query strategy based on repo availability
+	// When repo is available: always use SearchRepositoryIssues (optimized)
+	//   - "all" state: dual calls (open + closed) merged
+	//   - "open"/"closed": single call
+	// When no repo: fall back to GetProjectItemsForBoard (full project scan)
+	useSearchAPI := repoFilter != ""
 
 	if useSearchAPI {
-		// Parse repository owner/name
 		repoParts := strings.SplitN(repoFilter, "/", 2)
 		if len(repoParts) != 2 {
 			return fmt.Errorf("invalid repository format: %s (expected owner/repo)", repoFilter)
 		}
 
-		// Build search filters with server-side state filtering
-		searchFilters := api.SearchFilters{
-			State: opts.state,
-		}
+		if opts.state == "all" {
+			// Dual-call strategy: fetch open and closed separately, then merge
+			openIssues, err := client.SearchRepositoryIssues(repoParts[0], repoParts[1], api.SearchFilters{State: "open"}, 0)
+			if err != nil {
+				return fmt.Errorf("failed to search open issues: %w", err)
+			}
+			closedIssues, err := client.SearchRepositoryIssues(repoParts[0], repoParts[1], api.SearchFilters{State: "closed"}, 0)
+			if err != nil {
+				return fmt.Errorf("failed to search closed issues: %w", err)
+			}
 
-		// Fetch issues via Search API (state filtered server-side)
-		issues, err := client.SearchRepositoryIssues(repoParts[0], repoParts[1], searchFilters, 0)
-		if err != nil {
-			return fmt.Errorf("failed to search issues: %w", err)
-		}
+			allIssues := append(openIssues, closedIssues...)
+			items, err = enrichIssuesToBoardItems(client, project.ID, allIssues, repoFilter)
+			if err != nil {
+				return fmt.Errorf("failed to enrich issues: %w", err)
+			}
+		} else {
+			// Single-call strategy
+			searchFilters := api.SearchFilters{
+				State: opts.state,
+			}
 
-		// Enrich with project field values and convert to BoardItems
-		items, err = enrichIssuesToBoardItems(client, project.ID, issues, repoFilter)
-		if err != nil {
-			return fmt.Errorf("failed to enrich issues: %w", err)
-		}
-	} else {
-		// Fallback: Use GetProjectItemsForBoard when no repo or state=all
-		// This path fetches all items and requires client-side filtering
-		var filter *api.BoardItemsFilter
-		if repoFilter != "" {
-			filter = &api.BoardItemsFilter{
-				Repository: repoFilter,
+			issues, err := client.SearchRepositoryIssues(repoParts[0], repoParts[1], searchFilters, 0)
+			if err != nil {
+				return fmt.Errorf("failed to search issues: %w", err)
+			}
+
+			items, err = enrichIssuesToBoardItems(client, project.ID, issues, repoFilter)
+			if err != nil {
+				return fmt.Errorf("failed to enrich issues: %w", err)
 			}
 		}
-
-		items, err = client.GetProjectItemsForBoard(project.ID, filter)
+	} else {
+		// Fallback: Use GetProjectItemsForBoard when no repo filter available
+		items, err = client.GetProjectItemsForBoard(project.ID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get project items: %w", err)
 		}

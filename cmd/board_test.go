@@ -12,10 +12,15 @@ import (
 
 // mockBoardClient implements boardClient for testing
 type mockBoardClient struct {
-	project    *api.Project
-	boardItems []api.BoardItem
-	issues     []api.Issue
-	fieldsByID map[string][]api.FieldValue
+	project             *api.Project
+	boardItems          []api.BoardItem
+	issues              []api.Issue
+	issuesByState       map[string][]api.Issue // state -> results (for dual-call tests)
+	fieldsByID          map[string][]api.FieldValue
+
+	// Call tracking
+	searchCalls              []api.SearchFilters
+	getBoardItemsForBoardCalled bool
 
 	// Error injection
 	getProjectErr      error
@@ -43,6 +48,7 @@ func (m *mockBoardClient) GetProject(owner string, number int) (*api.Project, er
 }
 
 func (m *mockBoardClient) GetProjectItemsForBoard(projectID string, filter *api.BoardItemsFilter) ([]api.BoardItem, error) {
+	m.getBoardItemsForBoardCalled = true
 	if m.getBoardItemsErr != nil {
 		return nil, m.getBoardItemsErr
 	}
@@ -50,8 +56,14 @@ func (m *mockBoardClient) GetProjectItemsForBoard(projectID string, filter *api.
 }
 
 func (m *mockBoardClient) SearchRepositoryIssues(owner, repo string, filters api.SearchFilters, limit int) ([]api.Issue, error) {
+	m.searchCalls = append(m.searchCalls, filters)
 	if m.searchIssuesErr != nil {
 		return nil, m.searchIssuesErr
+	}
+	if m.issuesByState != nil {
+		if results, ok := m.issuesByState[filters.State]; ok {
+			return results, nil
+		}
 	}
 	return m.issues, nil
 }
@@ -622,16 +634,75 @@ func TestRunBoardWithDeps_UsesSearchAPIWhenRepoConfigured(t *testing.T) {
 	}
 }
 
-func TestRunBoardWithDeps_FallbackWhenStateAll(t *testing.T) {
+func TestRunBoardWithDeps_StateAll_UsesDualSearchCalls(t *testing.T) {
 	mock := newMockBoardClient()
-	// Set up board items for fallback path (GetProjectItemsForBoard)
-	mock.boardItems = []api.BoardItem{
-		{Number: 1, Title: "Fallback Issue", Status: "Backlog", State: "OPEN"},
+	mock.issuesByState = map[string][]api.Issue{
+		"open": {
+			{ID: "issue-1", Number: 1, Title: "Open Issue", State: "OPEN", Repository: api.Repository{Owner: "test-org", Name: "test-repo"}},
+		},
+		"closed": {
+			{ID: "issue-2", Number: 2, Title: "Closed Issue", State: "CLOSED", Repository: api.Repository{Owner: "test-org", Name: "test-repo"}},
+		},
+	}
+	mock.fieldsByID = map[string][]api.FieldValue{
+		"issue-1": {{Field: "Status", Value: "Backlog"}, {Field: "Priority", Value: "P1"}},
+		"issue-2": {{Field: "Status", Value: "Done"}, {Field: "Priority", Value: "P2"}},
 	}
 
 	cfg := &config.Config{
 		Project:      config.Project{Owner: "test-org", Number: 1},
 		Repositories: []string{"test-org/test-repo"},
+		Fields: map[string]config.Field{
+			"status": {
+				Field:  "Status",
+				Values: map[string]string{"backlog": "Backlog", "done": "Done"},
+			},
+		},
+	}
+
+	cmd := newBoardCommand()
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+
+	opts := &boardOptions{state: "all"}
+	err := runBoardWithDeps(cmd, opts, cfg, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should use dual search calls, NOT GetProjectItemsForBoard
+	if mock.getBoardItemsForBoardCalled {
+		t.Error("Expected dual SearchRepositoryIssues calls, but GetProjectItemsForBoard was called")
+	}
+	if len(mock.searchCalls) != 2 {
+		t.Fatalf("Expected 2 SearchRepositoryIssues calls, got %d", len(mock.searchCalls))
+	}
+
+	states := map[string]bool{}
+	for _, call := range mock.searchCalls {
+		states[call.State] = true
+	}
+	if !states["open"] || !states["closed"] {
+		t.Errorf("Expected calls for 'open' and 'closed' states, got: %v", mock.searchCalls)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "Open Issue") {
+		t.Errorf("Expected 'Open Issue' in output, got: %s", output)
+	}
+	if !strings.Contains(output, "Closed Issue") {
+		t.Errorf("Expected 'Closed Issue' in output, got: %s", output)
+	}
+}
+
+func TestRunBoardWithDeps_StateAll_NoRepoFilter_FallsBack(t *testing.T) {
+	mock := newMockBoardClient()
+	mock.boardItems = []api.BoardItem{
+		{Number: 1, Title: "Fallback Issue", Status: "Backlog", State: "OPEN"},
+	}
+
+	cfg := &config.Config{
+		Project: config.Project{Owner: "test-org", Number: 1},
 		Fields: map[string]config.Field{
 			"status": {
 				Field:  "Status",
@@ -644,16 +715,18 @@ func TestRunBoardWithDeps_FallbackWhenStateAll(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 
-	// state=all should use fallback path
 	opts := &boardOptions{state: "all"}
 	err := runBoardWithDeps(cmd, opts, cfg, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	output := buf.String()
-	if !strings.Contains(output, "Fallback Issue") {
-		t.Error("expected Fallback Issue in output from fallback path")
+	// Without repo, should fall back to GetProjectItemsForBoard
+	if !mock.getBoardItemsForBoardCalled {
+		t.Error("Expected GetProjectItemsForBoard when no repo filter is set")
+	}
+	if len(mock.searchCalls) != 0 {
+		t.Errorf("Expected no search calls, got %d", len(mock.searchCalls))
 	}
 }
 
