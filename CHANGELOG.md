@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Rebranded from "Project Management Unified" to "Praxis Management Utility" — PMU acronym unchanged (#698)
+
 ## [1.1.0] - 2026-03-03
 
 ### Added
