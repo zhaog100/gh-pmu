@@ -106,20 +106,29 @@ func TestJoinFeatures_Multiple(t *testing.T) {
 func TestSetTestTransport(t *testing.T) {
 	// Clear any existing transport
 	SetTestTransport(nil)
-	if testTransport != nil {
+	testMu.Lock()
+	isNil := testTransport == nil
+	testMu.Unlock()
+	if !isNil {
 		t.Fatal("Expected testTransport to be nil after clearing")
 	}
 
 	// Set a test transport
 	transport := &headerCapturingTransport{}
 	SetTestTransport(transport)
-	if testTransport != transport {
+	testMu.Lock()
+	match := testTransport == transport
+	testMu.Unlock()
+	if !match {
 		t.Fatal("Expected testTransport to be the set transport")
 	}
 
 	// Clear the transport
 	SetTestTransport(nil)
-	if testTransport != nil {
+	testMu.Lock()
+	isNil = testTransport == nil
+	testMu.Unlock()
+	if !isNil {
 		t.Fatal("Expected testTransport to be nil after clearing")
 	}
 }
@@ -127,19 +136,28 @@ func TestSetTestTransport(t *testing.T) {
 func TestSetTestAuthToken(t *testing.T) {
 	// Clear any existing token
 	SetTestAuthToken("")
-	if testAuthToken != "" {
+	testMu.Lock()
+	isEmpty := testAuthToken == ""
+	testMu.Unlock()
+	if !isEmpty {
 		t.Fatal("Expected testAuthToken to be empty after clearing")
 	}
 
 	// Set a token
 	SetTestAuthToken("test-token-123")
-	if testAuthToken != "test-token-123" {
-		t.Errorf("Expected testAuthToken to be 'test-token-123', got %q", testAuthToken)
+	testMu.Lock()
+	val := testAuthToken
+	testMu.Unlock()
+	if val != "test-token-123" {
+		t.Errorf("Expected testAuthToken to be 'test-token-123', got %q", val)
 	}
 
 	// Clear the token
 	SetTestAuthToken("")
-	if testAuthToken != "" {
+	testMu.Lock()
+	isEmpty = testAuthToken == ""
+	testMu.Unlock()
+	if !isEmpty {
 		t.Fatal("Expected testAuthToken to be empty after clearing")
 	}
 }

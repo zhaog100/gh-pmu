@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/cli/go-gh/v2/pkg/api"
 )
@@ -14,6 +15,9 @@ const FeatureSubIssues = "sub_issues"
 
 // FeatureIssueTypes is the GitHub API preview header for issue types
 const FeatureIssueTypes = "issue_types"
+
+// testMu guards testTransport and testAuthToken against concurrent access.
+var testMu sync.Mutex
 
 // testTransport is a package-level transport override for testing.
 // When set, NewClient() will use this transport instead of http.DefaultTransport.
@@ -26,12 +30,16 @@ var testAuthToken string
 // SetTestTransport sets a custom transport for testing purposes.
 // Call with nil to clear the test transport.
 func SetTestTransport(t http.RoundTripper) {
+	testMu.Lock()
+	defer testMu.Unlock()
 	testTransport = t
 }
 
 // SetTestAuthToken sets a custom auth token for testing purposes.
 // Call with empty string to clear the test token.
 func SetTestAuthToken(token string) {
+	testMu.Lock()
+	defer testMu.Unlock()
 	testAuthToken = token
 }
 
@@ -72,12 +80,14 @@ func NewClient() *Client {
 		EnableIssueTypes: true,
 	}
 	// Apply test overrides if set
+	testMu.Lock()
 	if testTransport != nil {
 		opts.Transport = testTransport
 	}
 	if testAuthToken != "" {
 		opts.AuthToken = testAuthToken
 	}
+	testMu.Unlock()
 	return NewClientWithOptions(opts)
 }
 
