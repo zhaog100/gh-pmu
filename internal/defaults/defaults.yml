@@ -23,7 +23,7 @@ labels:
     color: "d73a4a"
   - name: enhancement
     description: New feature or request
-    color: "a2eeef"
+    color: "1d76db"
   - name: qa-required
     description: Requires QA validation
     color: "fbca04"
@@ -32,7 +32,7 @@ labels:
     color: "c5def5"
   - name: security-required
     description: Requires security review
-    color: "b60205"
+    color: "d93f0b"
   - name: legal-required
     description: Requires legal review
     color: "5319e7"
@@ -44,7 +44,7 @@ labels:
     color: "b60205"
   - name: approval-required
     description: Requires explicit approval before proceeding
-    color: "fbca04"
+    color: "e4e669"
   - name: blocked
     description: Issue is blocked by external dependency
     color: "e11d21"
@@ -63,9 +63,12 @@ labels:
   - name: pending
     description: Review findings not yet resolved
     color: "D93F0B"
+  - name: security-finding
+    description: A code review, audit, pen test, or similar revealed a security finding
+    color: "e36209"
   - name: assigned
     description: Issue is assigned to a branch
-    color: "FBCA04"
+    color: "bfd4f2"
 
 # Project fields configuration
 fields:
