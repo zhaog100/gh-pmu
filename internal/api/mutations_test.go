@@ -2790,3 +2790,88 @@ func TestDeleteProjectField_EmptyFieldID(t *testing.T) {
 		t.Errorf("Expected 'field ID is required' error, got: %v", err)
 	}
 }
+
+// ============================================================================
+// resolveLabelIDs Tests
+// ============================================================================
+
+func TestResolveLabelIDs_FoundLabels(t *testing.T) {
+	mock := &mockGraphQLClient{
+		queryFunc: func(name string, query interface{}, variables map[string]interface{}) error {
+			if name == "GetLabelID" {
+				v := reflect.ValueOf(query).Elem()
+				repo := v.FieldByName("Repository")
+				label := repo.FieldByName("Label")
+				label.FieldByName("ID").SetString("label-123")
+			}
+			return nil
+		},
+	}
+
+	client := NewClientWithGraphQL(mock)
+	ids, err := client.resolveLabelIDs("owner", "repo", []string{"bug"})
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(ids) != 1 {
+		t.Fatalf("Expected 1 label ID, got %d", len(ids))
+	}
+}
+
+func TestResolveLabelIDs_AutoCreatesStandardLabel(t *testing.T) {
+	queryCallCount := 0
+	mock := &mockGraphQLClient{
+		queryFunc: func(name string, query interface{}, variables map[string]interface{}) error {
+			queryCallCount++
+			if name == "GetLabelID" {
+				v := reflect.ValueOf(query).Elem()
+				repo := v.FieldByName("Repository")
+				label := repo.FieldByName("Label")
+				if queryCallCount > 1 {
+					// After creation, return the label ID
+					label.FieldByName("ID").SetString("label-bug-123")
+				}
+				// First call returns empty ID (label not found)
+			}
+			return nil
+		},
+		mutateFunc: func(name string, mutation interface{}, variables map[string]interface{}) error {
+			if name == "CreateLabel" {
+				input := variables["input"].(CreateLabelInput)
+				if string(input.Name) != "bug" {
+					t.Errorf("Expected label name 'bug', got '%s'", input.Name)
+				}
+			}
+			return nil
+		},
+	}
+
+	client := NewClientWithGraphQL(mock)
+	ids, err := client.resolveLabelIDs("owner", "repo", []string{"bug"})
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(ids) != 1 {
+		t.Fatalf("Expected 1 label ID, got %d", len(ids))
+	}
+}
+
+func TestResolveLabelIDs_ErrorsForNonStandardLabel(t *testing.T) {
+	mock := &mockGraphQLClient{
+		queryFunc: func(name string, query interface{}, variables map[string]interface{}) error {
+			return nil
+		},
+	}
+
+	client := NewClientWithGraphQL(mock)
+	_, err := client.resolveLabelIDs("owner", "repo", []string{"custom-nonexistent"})
+
+	if err == nil {
+		t.Fatal("Expected error for non-standard label")
+	}
+	if !strings.Contains(err.Error(), "is not a standard label") {
+		t.Errorf("Expected 'is not a standard label' error, got: %v", err)
+	}
+}
