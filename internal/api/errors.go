@@ -104,7 +104,11 @@ func GetRetryAfter(err error) time.Duration {
 	return 0
 }
 
-// IsAuthError checks if an error indicates authentication issues
+// IsAuthError checks if an error indicates authentication issues.
+// Detects auth errors via:
+//   - Sentinel ErrNotAuthenticated
+//   - HTTP 401 status code (via httpStatusCoder interface)
+//   - Error message containing "authentication" or "not authenticated" (fallback)
 func IsAuthError(err error) bool {
 	if errors.Is(err, ErrNotAuthenticated) {
 		return true
@@ -112,9 +116,16 @@ func IsAuthError(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := err.Error()
-	return strings.Contains(msg, "401") ||
-		strings.Contains(msg, "authentication") ||
+
+	// Check HTTP status code via interface (primary detection)
+	var sc httpStatusCoder
+	if errors.As(err, &sc) {
+		return sc.HTTPStatusCode() == 401
+	}
+
+	// Fallback: string-based detection for non-HTTP errors
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "authentication") ||
 		strings.Contains(msg, "not authenticated")
 }
 
