@@ -164,7 +164,7 @@ func TestRunCommentWithDeps_Success(t *testing.T) {
 	cmd.SetOut(buf)
 
 	opts := &commentOptions{issueNumber: 42, body: "Test comment"}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestRunCommentWithDeps_NoBodySource(t *testing.T) {
 	cmd := newCommentCommand()
 
 	opts := &commentOptions{issueNumber: 42} // No body source
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error for no body source")
@@ -199,7 +199,7 @@ func TestRunCommentWithDeps_MultipleBodySources(t *testing.T) {
 		body:        "Body from flag",
 		bodyStdin:   true,
 	}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error for multiple body sources")
@@ -214,7 +214,7 @@ func TestRunCommentWithDeps_EmptyBody(t *testing.T) {
 	cmd := newCommentCommand()
 
 	opts := &commentOptions{issueNumber: 42, body: "   "} // Whitespace only
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error for empty body")
@@ -230,7 +230,7 @@ func TestRunCommentWithDeps_GetIssueError(t *testing.T) {
 	cmd := newCommentCommand()
 
 	opts := &commentOptions{issueNumber: 42, body: "Test comment"}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error")
@@ -246,7 +246,7 @@ func TestRunCommentWithDeps_AddCommentError(t *testing.T) {
 	cmd := newCommentCommand()
 
 	opts := &commentOptions{issueNumber: 42, body: "Test comment"}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error")
@@ -265,7 +265,7 @@ func TestRunCommentWithDeps_BodyAndBodyFileMutuallyExclusive(t *testing.T) {
 		body:        "Body from flag",
 		bodyFile:    "somefile.md",
 	}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error for multiple body sources")
@@ -284,7 +284,7 @@ func TestRunCommentWithDeps_BodyFileAndBodyStdinMutuallyExclusive(t *testing.T) 
 		bodyFile:    "somefile.md",
 		bodyStdin:   true,
 	}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 
 	if err == nil {
 		t.Fatal("expected error for multiple body sources")
@@ -307,7 +307,7 @@ func TestRunCommentWithDeps_OutputsCorrectCommentURL(t *testing.T) {
 	cmd.SetOut(buf)
 
 	opts := &commentOptions{issueNumber: 42, body: "Test comment"}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestRunCommentWithDeps_ZeroDatabaseId(t *testing.T) {
 	cmd.SetOut(buf)
 
 	opts := &commentOptions{issueNumber: 42, body: "Test comment"}
-	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo")
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -336,5 +336,30 @@ func TestRunCommentWithDeps_ZeroDatabaseId(t *testing.T) {
 	// With databaseId=0 (e.g., API didn't return it), URL still constructed
 	if !strings.Contains(output, "#issuecomment-0") {
 		t.Errorf("Expected issuecomment-0 in URL, got: %s", output)
+	}
+}
+
+// ============================================================================
+// --body-stdin with injected io.Reader
+// ============================================================================
+
+func TestRunCommentWithDeps_BodyStdin_InjectsReader(t *testing.T) {
+	mock := newMockCommentClient()
+	cmd := newCommentCommand()
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+
+	stdinContent := "Comment from stdin"
+	stdinReader := strings.NewReader(stdinContent)
+
+	opts := &commentOptions{issueNumber: 42, bodyStdin: true}
+	err := runCommentWithDeps(cmd, opts, mock, "owner", "repo", stdinReader)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if mock.comment.Body != stdinContent {
+		t.Errorf("Expected comment body %q, got %q", stdinContent, mock.comment.Body)
 	}
 }
