@@ -760,6 +760,10 @@ func collectSubIssuesRecursive(client moveClient, owner, repo string, number int
 			// Batch fetch sub-issues
 			subIssuesMap, err := client.GetSubIssuesBatch(repoOwner, repoName, numbers)
 			if err != nil {
+				// Initialize map if batch returned nil
+				if subIssuesMap == nil {
+					subIssuesMap = make(map[int][]api.SubIssue)
+				}
 				// Fallback to individual fetches if batch fails
 				for _, p := range parents {
 					subIssues, ferr := client.GetSubIssues(p.owner, p.repo, p.number)

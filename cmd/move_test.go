@@ -48,6 +48,7 @@ type mockMoveClient struct {
 	getProjectItemsErr         error
 	getProjectItemsByIssuesErr error
 	getSubIssuesErr            error
+	getSubIssuesBatchErr       error
 	setProjectItemErr          error
 	setProjectItemErrFor       map[string]error // itemID -> error
 	getOpenIssuesByLabelErr    error
@@ -141,6 +142,9 @@ func (m *mockMoveClient) GetSubIssues(owner, repo string, number int) ([]api.Sub
 
 func (m *mockMoveClient) GetSubIssuesBatch(owner, repo string, numbers []int) (map[int][]api.SubIssue, error) {
 	m.getSubIssuesBatchCalls++
+	if m.getSubIssuesBatchErr != nil {
+		return nil, m.getSubIssuesBatchErr
+	}
 	if m.getSubIssuesErr != nil {
 		return nil, m.getSubIssuesErr
 	}
@@ -2925,5 +2929,65 @@ func TestRunMoveWithDeps_StatusOnlyDoesNotTouchLabels(t *testing.T) {
 	}
 	if len(mock.removeLabelCalls) != 0 {
 		t.Errorf("Expected 0 RemoveLabelFromIssue calls for status-only change, got %d", len(mock.removeLabelCalls))
+	}
+}
+
+func TestRunMoveWithDeps_RecursiveBatchFallback_NilMap(t *testing.T) {
+	// Regression: GetSubIssuesBatch returns nil map on error,
+	// fallback path must not panic when writing to subIssuesMap.
+	mock := newMockMoveClient()
+	mock.project = &api.Project{ID: "proj-1", Number: 1, Title: "Test Project"}
+
+	mock.projectItems = []api.ProjectItem{
+		{
+			ID: "item-1",
+			Issue: &api.Issue{
+				Number:     1,
+				Title:      "Parent Issue",
+				Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+			},
+		},
+	}
+
+	// Sub-issues available for individual fetch (fallback)
+	mock.subIssues["testowner/testrepo#1"] = []api.SubIssue{
+		{
+			ID:     "issue-2",
+			Number: 2,
+			Title:  "Sub Issue",
+			Repository: api.Repository{Owner: "testowner", Name: "testrepo"},
+		},
+	}
+
+	// Batch fails (returns nil map) but individual GetSubIssues succeeds
+	mock.getSubIssuesBatchErr = fmt.Errorf("batch not supported")
+
+	cfg := testMoveConfig()
+
+	cmd := &cobra.Command{}
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	opts := &moveOptions{status: "in_progress", recursive: true, yes: true, depth: 10}
+
+	// ACT — should not panic
+	err := runMoveWithDeps(cmd, []string{"1"}, opts, cfg, mock)
+
+	// ASSERT
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	// Batch was attempted (once per recursion level)
+	if mock.getSubIssuesBatchCalls < 1 {
+		t.Errorf("Expected at least 1 batch call, got %d", mock.getSubIssuesBatchCalls)
+	}
+	// Individual fallback was used
+	if mock.getSubIssuesCalls < 1 {
+		t.Errorf("Expected at least 1 individual GetSubIssues call, got %d", mock.getSubIssuesCalls)
+	}
+	// Parent should be updated (sub-issue may be skipped if not in project)
+	if len(mock.fieldUpdates) < 1 {
+		t.Errorf("Expected at least 1 field update (parent), got %d", len(mock.fieldUpdates))
 	}
 }
