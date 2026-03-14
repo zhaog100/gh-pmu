@@ -711,125 +711,53 @@ func runMoveWithDeps(cmd *cobra.Command, args []string, opts *moveOptions, cfg *
 	return nil
 }
 
+// subIssueCollector holds shared state for recursive sub-issue collection.
+type subIssueCollector struct {
+	client        moveClient
+	itemIDMap     map[string]string
+	itemFieldsMap map[string][]api.FieldValue
+	itemDataMap   map[string]*api.Issue
+}
+
+// parentInfo tracks a parent issue for level-by-level traversal.
+type parentInfo struct {
+	owner  string
+	repo   string
+	number int
+	depth  int
+}
+
 func collectSubIssuesRecursive(client moveClient, owner, repo string, number int, itemIDMap map[string]string, itemFieldsMap map[string][]api.FieldValue, itemDataMap map[string]*api.Issue, currentDepth, maxDepth int) ([]issueInfo, error) {
 	if currentDepth > maxDepth {
 		return nil, nil
 	}
 
-	// Use level-by-level batch fetching for efficiency
-	// This reduces API calls from O(N) per level to O(repos) per level
-
-	// Track parent info for ordering: parent key -> list of children in order
-	type parentInfo struct {
-		owner  string
-		repo   string
-		number int
-		depth  int
+	c := &subIssueCollector{
+		client:        client,
+		itemIDMap:     itemIDMap,
+		itemFieldsMap: itemFieldsMap,
+		itemDataMap:   itemDataMap,
 	}
 
-	// Start with the initial parent
 	currentLevel := []parentInfo{{owner: owner, repo: repo, number: number, depth: currentDepth}}
 	var result []issueInfo
 
 	for len(currentLevel) > 0 && currentLevel[0].depth <= maxDepth {
-		// Group parents by repository for batch fetching
-		repoParents := make(map[string][]parentInfo) // "owner/repo" -> parents
-		for _, p := range currentLevel {
-			key := p.owner + "/" + p.repo
-			repoParents[key] = append(repoParents[key], p)
-		}
-
+		repoParents := groupByRepo(currentLevel)
 		var nextLevel []parentInfo
 
-		// Batch fetch sub-issues for each repository group
 		for repoKey, parents := range repoParents {
 			parts := strings.SplitN(repoKey, "/", 2)
 			if len(parts) != 2 {
 				continue
 			}
-			repoOwner, repoName := parts[0], parts[1]
 
-			// Collect issue numbers for this repo
-			numbers := make([]int, len(parents))
-			parentDepths := make(map[int]int) // number -> depth
-			for i, p := range parents {
-				numbers[i] = p.number
-				parentDepths[p.number] = p.depth
-			}
+			subIssuesMap := c.fetchSubIssues(parts[0], parts[1], parents)
 
-			// Batch fetch sub-issues
-			subIssuesMap, err := client.GetSubIssuesBatch(repoOwner, repoName, numbers)
-			if err != nil {
-				// Initialize map if batch returned nil
-				if subIssuesMap == nil {
-					subIssuesMap = make(map[int][]api.SubIssue)
-				}
-				// Fallback to individual fetches if batch fails
-				for _, p := range parents {
-					subIssues, ferr := client.GetSubIssues(p.owner, p.repo, p.number)
-					if ferr != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to get sub-issues for #%d: %v\n", p.number, ferr)
-						continue
-					}
-					subIssuesMap[p.number] = subIssues
-				}
-			}
-
-			// Process sub-issues for each parent (maintaining order)
 			for _, p := range parents {
-				subIssues := subIssuesMap[p.number]
-				childDepth := p.depth + 1
-
-				for _, sub := range subIssues {
-					// Determine the repo for this sub-issue
-					subOwner := sub.Repository.Owner
-					subRepo := sub.Repository.Name
-					if subOwner == "" {
-						subOwner = p.owner
-					}
-					if subRepo == "" {
-						subRepo = p.repo
-					}
-
-					key := fmt.Sprintf("%s/%s#%d", subOwner, subRepo, sub.Number)
-					itemID := itemIDMap[key] // may be empty if not in project
-
-					// Use data from batch-fetched project items if available
-					var body, issueID, state string
-					if issueData, ok := itemDataMap[key]; ok {
-						body = issueData.Body
-						issueID = issueData.ID
-						state = issueData.State
-					} else if issue, gerr := client.GetIssue(subOwner, subRepo, sub.Number); gerr == nil {
-						body = issue.Body
-						issueID = issue.ID
-						state = issue.State
-					}
-
-					info := issueInfo{
-						Owner:       subOwner,
-						Repo:        subRepo,
-						Number:      sub.Number,
-						Title:       sub.Title,
-						Body:        body,
-						IssueID:     issueID,
-						State:       state,
-						ItemID:      itemID,
-						FieldValues: itemFieldsMap[key],
-						Depth:       p.depth, // Use parent's depth for indentation
-					}
-					result = append(result, info)
-
-					// Queue for next level if within depth limit
-					if childDepth <= maxDepth {
-						nextLevel = append(nextLevel, parentInfo{
-							owner:  subOwner,
-							repo:   subRepo,
-							number: sub.Number,
-							depth:  childDepth,
-						})
-					}
-				}
+				infos, children := c.processParentSubIssues(p, subIssuesMap[p.number], maxDepth)
+				result = append(result, infos...)
+				nextLevel = append(nextLevel, children...)
 			}
 		}
 
@@ -837,6 +765,96 @@ func collectSubIssuesRecursive(client moveClient, owner, repo string, number int
 	}
 
 	return result, nil
+}
+
+// groupByRepo groups parents by "owner/repo" key for batch fetching.
+func groupByRepo(parents []parentInfo) map[string][]parentInfo {
+	grouped := make(map[string][]parentInfo)
+	for _, p := range parents {
+		key := p.owner + "/" + p.repo
+		grouped[key] = append(grouped[key], p)
+	}
+	return grouped
+}
+
+// fetchSubIssues batch-fetches sub-issues for a repository, falling back to individual calls on error.
+func (c *subIssueCollector) fetchSubIssues(repoOwner, repoName string, parents []parentInfo) map[int][]api.SubIssue {
+	numbers := make([]int, len(parents))
+	for i, p := range parents {
+		numbers[i] = p.number
+	}
+
+	subIssuesMap, err := c.client.GetSubIssuesBatch(repoOwner, repoName, numbers)
+	if err != nil {
+		if subIssuesMap == nil {
+			subIssuesMap = make(map[int][]api.SubIssue)
+		}
+		for _, p := range parents {
+			subIssues, ferr := c.client.GetSubIssues(p.owner, p.repo, p.number)
+			if ferr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to get sub-issues for #%d: %v\n", p.number, ferr)
+				continue
+			}
+			subIssuesMap[p.number] = subIssues
+		}
+	}
+	return subIssuesMap
+}
+
+// processParentSubIssues builds issueInfo entries for a parent's sub-issues and returns next-level parents.
+func (c *subIssueCollector) processParentSubIssues(parent parentInfo, subIssues []api.SubIssue, maxDepth int) ([]issueInfo, []parentInfo) {
+	var infos []issueInfo
+	var nextLevel []parentInfo
+	childDepth := parent.depth + 1
+
+	for _, sub := range subIssues {
+		subOwner := sub.Repository.Owner
+		subRepo := sub.Repository.Name
+		if subOwner == "" {
+			subOwner = parent.owner
+		}
+		if subRepo == "" {
+			subRepo = parent.repo
+		}
+
+		key := fmt.Sprintf("%s/%s#%d", subOwner, subRepo, sub.Number)
+		itemID := c.itemIDMap[key]
+
+		var body, issueID, state string
+		if issueData, ok := c.itemDataMap[key]; ok {
+			body = issueData.Body
+			issueID = issueData.ID
+			state = issueData.State
+		} else if issue, gerr := c.client.GetIssue(subOwner, subRepo, sub.Number); gerr == nil {
+			body = issue.Body
+			issueID = issue.ID
+			state = issue.State
+		}
+
+		infos = append(infos, issueInfo{
+			Owner:       subOwner,
+			Repo:        subRepo,
+			Number:      sub.Number,
+			Title:       sub.Title,
+			Body:        body,
+			IssueID:     issueID,
+			State:       state,
+			ItemID:      itemID,
+			FieldValues: c.itemFieldsMap[key],
+			Depth:       parent.depth,
+		})
+
+		if childDepth <= maxDepth {
+			nextLevel = append(nextLevel, parentInfo{
+				owner:  subOwner,
+				repo:   subRepo,
+				number: sub.Number,
+				depth:  childDepth,
+			})
+		}
+	}
+
+	return infos, nextLevel
 }
 
 // findActiveBranchForMove finds the active branch tracker from a list of issues
