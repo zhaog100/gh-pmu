@@ -1303,6 +1303,39 @@ func TestFindActiveReleaseForCreate_ExactPrefixMatch(t *testing.T) {
 }
 
 // ============================================================================
+// stripBranchPrefix Tests
+// ============================================================================
+
+func TestStripBranchPrefix_BranchPrefix(t *testing.T) {
+	result := stripBranchPrefix("Branch: v1.0.0")
+	if result != "v1.0.0" {
+		t.Errorf("Expected 'v1.0.0', got '%s'", result)
+	}
+}
+
+func TestStripBranchPrefix_ReleasePrefix(t *testing.T) {
+	result := stripBranchPrefix("Release: v1.0.0")
+	if result != "v1.0.0" {
+		t.Errorf("Expected 'v1.0.0', got '%s'", result)
+	}
+}
+
+func TestStripBranchPrefix_DoublePrefix_OnlyStripsFirst(t *testing.T) {
+	// Regression: "Branch: Release: something" must strip only "Branch: "
+	result := stripBranchPrefix("Branch: Release: something")
+	if result != "Release: something" {
+		t.Errorf("Expected 'Release: something', got '%s'", result)
+	}
+}
+
+func TestStripBranchPrefix_NoPrefix(t *testing.T) {
+	result := stripBranchPrefix("Some other title")
+	if result != "Some other title" {
+		t.Errorf("Expected 'Some other title', got '%s'", result)
+	}
+}
+
+// ============================================================================
 // decodeBase64Content Tests
 // ============================================================================
 

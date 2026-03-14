@@ -284,8 +284,7 @@ func runCreateWithDeps(cmd *cobra.Command, opts *createOptions, cfg *config.Conf
 				return fmt.Errorf("no active branch found. Run 'gh pmu branch start' to create one")
 			}
 			// Support both "Branch: " and "Release: " prefixes
-			releaseValue = strings.TrimPrefix(activeRelease.Title, "Branch: ")
-			releaseValue = strings.TrimPrefix(releaseValue, "Release: ")
+			releaseValue = stripBranchPrefix(activeRelease.Title)
 		}
 		if err := client.SetProjectItemField(project.ID, itemID, branchFieldName, releaseValue); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to set branch: %v\n", err)
@@ -449,6 +448,14 @@ func findActiveBranchForCreate(issues []api.Issue) *api.Issue {
 		}
 	}
 	return nil
+}
+
+// stripBranchPrefix removes a single branch tracker prefix ("Branch: " or "Release: ") from a title.
+func stripBranchPrefix(title string) string {
+	if strings.HasPrefix(title, "Branch: ") {
+		return strings.TrimPrefix(title, "Branch: ")
+	}
+	return strings.TrimPrefix(title, "Release: ")
 }
 
 // readBodyFile reads the body content from a file or stdin
