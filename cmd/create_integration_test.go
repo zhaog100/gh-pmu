@@ -63,7 +63,7 @@ func TestRunCreate_Integration_StatusAndPriority(t *testing.T) {
 
 // TestRunCreate_Integration_Labels tests applying --label flags
 func TestRunCreate_Integration_Labels(t *testing.T) {
-	env := testutil.RequireTestEnv(t)
+	testutil.RequireTestEnv(t)
 
 	title := fmt.Sprintf("Test Issue - Labels - %d", testUniqueID())
 
@@ -83,9 +83,8 @@ func TestRunCreate_Integration_Labels(t *testing.T) {
 	viewResult := testutil.RunCommand(t, "view", fmt.Sprintf("%d", issueNum), "--json")
 	testutil.AssertExitCode(t, viewResult, 0)
 
-	// The JSON output should include the label
-	// Note: labels might also come from config defaults
-	_ = env // used for RequireTestEnv
+	// Assert the label is present in the JSON output
+	testutil.AssertContains(t, viewResult.Stdout, "bug")
 }
 
 // TestRunCreate_Integration_ConfigDefaults tests applying defaults from config
