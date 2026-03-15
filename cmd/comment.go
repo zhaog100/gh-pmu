@@ -111,13 +111,16 @@ func runComment(cmd *cobra.Command, opts *commentOptions) error {
 	}
 
 	// Create API client
-	client := api.NewClient()
+	client, err := api.NewClient()
+	if err != nil {
+		return err
+	}
 
-	return runCommentWithDeps(cmd, opts, client, owner, repo)
+	return runCommentWithDeps(cmd, opts, client, owner, repo, os.Stdin)
 }
 
 // runCommentWithDeps is the testable implementation of runComment
-func runCommentWithDeps(cmd *cobra.Command, opts *commentOptions, client commentClient, owner, repo string) error {
+func runCommentWithDeps(cmd *cobra.Command, opts *commentOptions, client commentClient, owner, repo string, stdin io.Reader) error {
 	// Validate that exactly one body source is provided
 	bodySourceCount := 0
 	if opts.body != "" {
@@ -141,7 +144,7 @@ func runCommentWithDeps(cmd *cobra.Command, opts *commentOptions, client comment
 	body := opts.body
 
 	if opts.bodyStdin {
-		content, err := io.ReadAll(os.Stdin)
+		content, err := io.ReadAll(stdin)
 		if err != nil {
 			return fmt.Errorf("failed to read body from stdin: %w", err)
 		}

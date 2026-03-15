@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -145,7 +146,7 @@ func TestParseCommitReferences(t *testing.T) {
 				Number: 456,
 				Owner:  "owner",
 				Repo:   "repo",
-				Type:   "fix",
+				Type:   "fixes",
 				URL:    "https://github.com/owner/repo/issues/456",
 			},
 		},
@@ -159,7 +160,7 @@ func TestParseCommitReferences(t *testing.T) {
 				Number: 789,
 				Owner:  "owner",
 				Repo:   "repo",
-				Type:   "close",
+				Type:   "closes",
 				URL:    "https://github.com/owner/repo/issues/789",
 			},
 		},
@@ -220,9 +221,51 @@ func TestParseCommitReferences(t *testing.T) {
 				if got.Repo != tt.checkFirst.Repo {
 					t.Errorf("Repo: expected %s, got %s", tt.checkFirst.Repo, got.Repo)
 				}
+				if got.Type != tt.checkFirst.Type {
+					t.Errorf("Type: expected %s, got %s", tt.checkFirst.Type, got.Type)
+				}
 				if got.URL != tt.checkFirst.URL {
 					t.Errorf("URL: expected %s, got %s", tt.checkFirst.URL, got.URL)
 				}
+			}
+		})
+	}
+}
+
+func TestParseCommitReferences_KeywordTypeLabels(t *testing.T) {
+	tests := []struct {
+		keyword      string
+		expectedType string
+	}{
+		{"fix", "fixes"},
+		{"fixes", "fixes"},
+		{"fixed", "fixes"},
+		{"Fix", "fixes"},
+		{"Fixes", "fixes"},
+		{"Fixed", "fixes"},
+		{"close", "closes"},
+		{"closes", "closes"},
+		{"closed", "closes"},
+		{"Close", "closes"},
+		{"Closes", "closes"},
+		{"Closed", "closes"},
+		{"resolve", "resolves"},
+		{"resolves", "resolves"},
+		{"resolved", "resolves"},
+		{"Resolve", "resolves"},
+		{"Resolves", "resolves"},
+		{"Resolved", "resolves"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.keyword, func(t *testing.T) {
+			subject := fmt.Sprintf("%s #42", tt.keyword)
+			refs := parseCommitReferences(subject, "owner", "repo")
+			if len(refs) == 0 {
+				t.Fatalf("No references found for keyword %q", tt.keyword)
+			}
+			if refs[0].Type != tt.expectedType {
+				t.Errorf("Keyword %q: expected type %q, got %q", tt.keyword, tt.expectedType, refs[0].Type)
 			}
 		})
 	}
@@ -818,5 +861,57 @@ func TestGetRepoRoot_InGitRepo(t *testing.T) {
 	// Should be an absolute path
 	if !filepath.IsAbs(root) {
 		t.Errorf("Expected absolute path, got %q", root)
+	}
+}
+
+// ============================================================================
+// parseCommitLog Tests
+// ============================================================================
+
+func TestParseCommitLog_StandardInput(t *testing.T) {
+	input := "abc1234\x00John Doe\x002026-03-14T10:00:00Z\x00feat: add feature"
+	commits := parseCommitLog(input)
+	if len(commits) != 1 {
+		t.Fatalf("Expected 1 commit, got %d", len(commits))
+	}
+	if commits[0].Hash != "abc1234" {
+		t.Errorf("Expected hash 'abc1234', got '%s'", commits[0].Hash)
+	}
+	if commits[0].Author != "John Doe" {
+		t.Errorf("Expected author 'John Doe', got '%s'", commits[0].Author)
+	}
+	if commits[0].Subject != "feat: add feature" {
+		t.Errorf("Expected subject 'feat: add feature', got '%s'", commits[0].Subject)
+	}
+}
+
+func TestParseCommitLog_AuthorWithPipe(t *testing.T) {
+	// Regression: author name containing | must not corrupt parsing
+	input := "def5678\x00First | Last\x002026-03-14T10:00:00Z\x00fix: something"
+	commits := parseCommitLog(input)
+	if len(commits) != 1 {
+		t.Fatalf("Expected 1 commit, got %d", len(commits))
+	}
+	if commits[0].Author != "First | Last" {
+		t.Errorf("Expected author 'First | Last', got '%s'", commits[0].Author)
+	}
+	if commits[0].Subject != "fix: something" {
+		t.Errorf("Expected subject 'fix: something', got '%s'", commits[0].Subject)
+	}
+}
+
+func TestParseCommitLog_MultipleLines(t *testing.T) {
+	input := "aaa\x00Author1\x002026-03-14T10:00:00Z\x00first commit\n" +
+		"bbb\x00Author2\x002026-03-14T11:00:00Z\x00second commit"
+	commits := parseCommitLog(input)
+	if len(commits) != 2 {
+		t.Fatalf("Expected 2 commits, got %d", len(commits))
+	}
+}
+
+func TestParseCommitLog_EmptyInput(t *testing.T) {
+	commits := parseCommitLog("")
+	if len(commits) != 0 {
+		t.Errorf("Expected 0 commits, got %d", len(commits))
 	}
 }

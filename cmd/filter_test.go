@@ -9,6 +9,7 @@ import (
 
 	"github.com/rubrical-works/gh-pmu/internal/api"
 	"github.com/rubrical-works/gh-pmu/internal/config"
+	"github.com/spf13/cobra"
 )
 
 // mockFilterClient implements filterClient for testing
@@ -462,15 +463,21 @@ func TestOutputFilterTable_TitleTruncation(t *testing.T) {
 // ============================================================================
 
 func TestOutputFilterJSON_EmptyIssues(t *testing.T) {
-	// outputFilterJSON writes to os.Stdout
-	// We can verify it doesn't error
-	err := outputFilterJSON([]FilterInput{})
+	cmd := &cobra.Command{}
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+
+	err := outputFilterJSON(cmd, []FilterInput{})
 	if err != nil {
 		t.Fatalf("outputFilterJSON() error = %v", err)
 	}
 }
 
 func TestOutputFilterJSON_WithIssues(t *testing.T) {
+	cmd := &cobra.Command{}
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+
 	issues := []FilterInput{
 		{
 			Number: 42,
@@ -480,7 +487,7 @@ func TestOutputFilterJSON_WithIssues(t *testing.T) {
 		},
 	}
 
-	err := outputFilterJSON(issues)
+	err := outputFilterJSON(cmd, issues)
 	if err != nil {
 		t.Fatalf("outputFilterJSON() error = %v", err)
 	}
@@ -1041,5 +1048,39 @@ func TestBuildIssueRefsFromInput(t *testing.T) {
 				t.Errorf("buildIssueRefsFromInput() repo = %v, want %v", refs[0].Repo, tt.wantRepo)
 			}
 		})
+	}
+}
+
+// ============================================================================
+// hasPipedInput Tests
+// ============================================================================
+
+func TestHasPipedInput_NilFile(t *testing.T) {
+	// Simulates os.Stdin.Stat() returning error (nil stat)
+	result := hasPipedInput(nil)
+	if result != false {
+		t.Error("Expected false for nil file (graceful fallback)")
+	}
+}
+
+func TestHasPipedInput_RegularFile(t *testing.T) {
+	// A temp file is not a character device, so it simulates piped input
+	tmpfile, err := os.CreateTemp("", "test-stdin-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
+
+	if _, err := tmpfile.WriteString("test data"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tmpfile.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	result := hasPipedInput(tmpfile)
+	if result != true {
+		t.Error("Expected true for regular file (piped input)")
 	}
 }

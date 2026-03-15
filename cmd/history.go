@@ -305,7 +305,7 @@ func countFilesInPath(path string) (int, error) {
 func getCommitHistory(paths []string, since string, limit int) ([]CommitInfo, error) {
 	args := []string{
 		"log",
-		"--format=%h|%an|%aI|%s",
+		"--format=%h%x00%an%x00%aI%x00%s",
 		fmt.Sprintf("--max-count=%d", limit),
 	}
 
@@ -322,14 +322,20 @@ func getCommitHistory(paths []string, since string, limit int) ([]CommitInfo, er
 		return nil, err
 	}
 
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	if len(lines) == 1 && lines[0] == "" {
-		return nil, nil
+	return parseCommitLog(strings.TrimSpace(string(output))), nil
+}
+
+// parseCommitLog parses git log output using null byte delimiters.
+// Format: %h%x00%an%x00%aI%x00%s (one commit per line).
+func parseCommitLog(output string) []CommitInfo {
+	if output == "" {
+		return nil
 	}
 
+	lines := strings.Split(output, "\n")
 	var commits []CommitInfo
 	for _, line := range lines {
-		parts := strings.SplitN(line, "|", 4)
+		parts := strings.SplitN(line, "\x00", 4)
 		if len(parts) != 4 {
 			continue
 		}
@@ -343,7 +349,7 @@ func getCommitHistory(paths []string, since string, limit int) ([]CommitInfo, er
 		})
 	}
 
-	return commits, nil
+	return commits
 }
 
 // inferChangeType determines the change type from commit subject prefix
@@ -384,17 +390,27 @@ func parseCommitReferences(subject, defaultOwner, defaultRepo string) []IssueRef
 	seen := make(map[int]bool)
 
 	// Pattern: fixes #123, closes #456, resolves #789
-	actionPattern := regexp.MustCompile(`(?i)(?:fix(?:es)?|close[sd]?|resolve[sd]?)\s+#(\d+)`)
+	actionPattern := regexp.MustCompile(`(?i)(fix(?:e[sd])?|close[sd]?|resolve[sd]?)\s+#(\d+)`)
+	actionTypeMap := map[string]string{
+		"fix": "fixes", "fixes": "fixes", "fixed": "fixes",
+		"close": "closes", "closes": "closes", "closed": "closes",
+		"resolve": "resolves", "resolves": "resolves", "resolved": "resolves",
+	}
 	actionMatches := actionPattern.FindAllStringSubmatch(subject, -1)
 	for _, match := range actionMatches {
-		num, _ := strconv.Atoi(match[1])
+		num, _ := strconv.Atoi(match[2])
 		if !seen[num] {
 			seen[num] = true
+			keyword := strings.ToLower(match[1])
+			refType := actionTypeMap[keyword]
+			if refType == "" {
+				refType = keyword
+			}
 			refs = append(refs, IssueReference{
 				Number: num,
 				Owner:  defaultOwner,
 				Repo:   defaultRepo,
-				Type:   strings.ToLower(strings.TrimSuffix(strings.TrimSuffix(match[0][:strings.Index(match[0], "#")-1], "s"), "d")),
+				Type:   refType,
 				URL:    fmt.Sprintf("https://github.com/%s/%s/issues/%d", defaultOwner, defaultRepo, num),
 			})
 		}

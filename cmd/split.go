@@ -109,7 +109,10 @@ func runSplit(cmd *cobra.Command, args []string, opts *splitOptions) error {
 	}
 
 	// Create API client
-	client := api.NewClient()
+	client, err := api.NewClient()
+	if err != nil {
+		return err
+	}
 
 	return runSplitWithDeps(cmd, args, opts, client, owner, repo, issueNum)
 }
@@ -235,7 +238,7 @@ func outputSplitJSON(cmd *cobra.Command, parent *api.Issue, tasks []string, stat
 		"tasks":     tasks,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(cmd.OutOrStdout())
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(output)
 }
@@ -263,7 +266,7 @@ func outputSplitJSONCreated(cmd *cobra.Command, parent *api.Issue, created []api
 		"failed":       failed,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(cmd.OutOrStdout())
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(output)
 }

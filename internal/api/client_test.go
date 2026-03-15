@@ -9,7 +9,10 @@ import (
 
 func TestNewClient_ReturnsClient(t *testing.T) {
 	// ACT: Create a new client
-	client := NewClient()
+	client, err := NewClient()
+	if err != nil {
+		t.Skipf("Skipping - requires auth: %v", err)
+	}
 
 	// ASSERT: Client is not nil
 	if client == nil {
@@ -24,7 +27,10 @@ func TestNewClient_HasGraphQLClient(t *testing.T) {
 	}
 
 	// ACT: Create a new client
-	client := NewClient()
+	client, err := NewClient()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 
 	// ASSERT: GraphQL client is accessible
 	if client.gql == nil {
@@ -33,17 +39,26 @@ func TestNewClient_HasGraphQLClient(t *testing.T) {
 }
 
 func TestNewClientWithOptions_CustomHost(t *testing.T) {
-	// ARRANGE: Custom options
+	// ARRANGE: Custom options with transport to avoid auth lookup
+	transport := &headerCapturingTransport{}
 	opts := ClientOptions{
-		Host: "github.example.com",
+		Host:      "github.example.com",
+		Transport: transport,
+		AuthToken: "test-token",
 	}
 
 	// ACT: Create client with options
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 
-	// ASSERT: Client is created (host is used internally)
+	// ASSERT: Client is created with custom host
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
+	}
+	if client.opts.Host != "github.example.com" {
+		t.Errorf("Expected Host 'github.example.com', got %q", client.opts.Host)
 	}
 }
 
@@ -56,7 +71,10 @@ func TestClient_FeatureHeaders_Included(t *testing.T) {
 		AuthToken:        "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}
@@ -106,20 +124,29 @@ func TestJoinFeatures_Multiple(t *testing.T) {
 func TestSetTestTransport(t *testing.T) {
 	// Clear any existing transport
 	SetTestTransport(nil)
-	if testTransport != nil {
+	testMu.Lock()
+	isNil := testTransport == nil
+	testMu.Unlock()
+	if !isNil {
 		t.Fatal("Expected testTransport to be nil after clearing")
 	}
 
 	// Set a test transport
 	transport := &headerCapturingTransport{}
 	SetTestTransport(transport)
-	if testTransport != transport {
+	testMu.Lock()
+	match := testTransport == transport
+	testMu.Unlock()
+	if !match {
 		t.Fatal("Expected testTransport to be the set transport")
 	}
 
 	// Clear the transport
 	SetTestTransport(nil)
-	if testTransport != nil {
+	testMu.Lock()
+	isNil = testTransport == nil
+	testMu.Unlock()
+	if !isNil {
 		t.Fatal("Expected testTransport to be nil after clearing")
 	}
 }
@@ -127,19 +154,28 @@ func TestSetTestTransport(t *testing.T) {
 func TestSetTestAuthToken(t *testing.T) {
 	// Clear any existing token
 	SetTestAuthToken("")
-	if testAuthToken != "" {
+	testMu.Lock()
+	isEmpty := testAuthToken == ""
+	testMu.Unlock()
+	if !isEmpty {
 		t.Fatal("Expected testAuthToken to be empty after clearing")
 	}
 
 	// Set a token
 	SetTestAuthToken("test-token-123")
-	if testAuthToken != "test-token-123" {
-		t.Errorf("Expected testAuthToken to be 'test-token-123', got %q", testAuthToken)
+	testMu.Lock()
+	val := testAuthToken
+	testMu.Unlock()
+	if val != "test-token-123" {
+		t.Errorf("Expected testAuthToken to be 'test-token-123', got %q", val)
 	}
 
 	// Clear the token
 	SetTestAuthToken("")
-	if testAuthToken != "" {
+	testMu.Lock()
+	isEmpty = testAuthToken == ""
+	testMu.Unlock()
+	if !isEmpty {
 		t.Fatal("Expected testAuthToken to be empty after clearing")
 	}
 }
@@ -155,7 +191,10 @@ func TestNewClient_UsesTestTransport(t *testing.T) {
 	}()
 
 	// Create client via NewClient() — should pick up test transport
-	client := NewClient()
+	client, err := NewClient()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be created")
 	}
@@ -176,7 +215,10 @@ func TestNewClientWithOptions_Transport(t *testing.T) {
 		AuthToken: "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}
@@ -200,7 +242,10 @@ func TestNewClientWithOptions_AllOptions(t *testing.T) {
 		AuthToken:        "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}
@@ -270,7 +315,10 @@ func TestNewClientWithOptions_DisabledFeatures(t *testing.T) {
 		AuthToken:        "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}
@@ -294,7 +342,10 @@ func TestNewClientWithOptions_OnlySubIssues(t *testing.T) {
 		AuthToken:        "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}
@@ -309,6 +360,27 @@ func TestNewClientWithOptions_OnlySubIssues(t *testing.T) {
 	}
 }
 
+func TestNewClientWithOptions_ReturnsErrorOnAuthFailure(t *testing.T) {
+	// Ensure no test overrides are active
+	SetTestTransport(nil)
+	SetTestAuthToken("")
+
+	// Use an invalid host to force auth failure
+	opts := ClientOptions{
+		Host: "invalid.nonexistent.example.com",
+	}
+
+	_, err := NewClientWithOptions(opts)
+	// The go-gh library may or may not fail depending on environment.
+	// If it fails, it should return a wrapped error.
+	if err != nil {
+		if !strings.Contains(err.Error(), "failed to create API client") {
+			t.Errorf("Expected wrapped error, got: %v", err)
+		}
+	}
+	// If it succeeds (e.g., gh auth has a default token), that's also valid.
+}
+
 func TestNewClientWithOptions_OnlyIssueTypes(t *testing.T) {
 	transport := &headerCapturingTransport{}
 	opts := ClientOptions{
@@ -318,7 +390,10 @@ func TestNewClientWithOptions_OnlyIssueTypes(t *testing.T) {
 		AuthToken:        "test-token",
 	}
 
-	client := NewClientWithOptions(opts)
+	client, err := NewClientWithOptions(opts)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if client == nil {
 		t.Fatal("Expected client to be non-nil")
 	}

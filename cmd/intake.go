@@ -97,7 +97,10 @@ func runIntake(cmd *cobra.Command, opts *intakeOptions) error {
 	}
 
 	// Create API client
-	client := api.NewClient()
+	client, err := api.NewClient()
+	if err != nil {
+		return err
+	}
 
 	return runIntakeWithDeps(cmd, opts, cfg, client)
 }
@@ -173,7 +176,7 @@ func runIntakeWithDeps(cmd *cobra.Command, opts *intakeOptions, cfg *config.Conf
 		if !opts.json {
 			cmd.Println("All issues are already tracked in the project")
 		} else {
-			encoder := json.NewEncoder(os.Stdout)
+			encoder := json.NewEncoder(cmd.OutOrStdout())
 			encoder.SetIndent("", "  ")
 			_ = encoder.Encode(map[string]interface{}{"issues": []interface{}{}, "count": 0})
 		}
@@ -279,7 +282,7 @@ func runIntakeWithDeps(cmd *cobra.Command, opts *intakeOptions, cfg *config.Conf
 }
 
 func outputIntakeTable(cmd *cobra.Command, issues []api.Issue) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "NUMBER\tTITLE\tREPOSITORY\tSTATE")
 
 	for _, issue := range issues {
@@ -325,7 +328,7 @@ func outputIntakeJSON(cmd *cobra.Command, issues []api.Issue, status string) err
 		})
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(cmd.OutOrStdout())
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(output)
 }

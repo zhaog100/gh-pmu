@@ -490,3 +490,63 @@ func TestOpenInBrowser(t *testing.T) {
 		}
 	})
 }
+
+// ============================================================================
+// Header Multi-byte UTF-8 Tests
+// ============================================================================
+
+func TestHeader_MultiByte_AlignedBorders(t *testing.T) {
+	var buf bytes.Buffer
+	u := NewWithOptions(&buf, true) // No color to simplify output parsing
+
+	// Use multi-byte UTF-8 title: 3 runes, 9 bytes
+	title := "テスト" // 3 CJK characters, each 3 bytes
+	u.Header(title, "")
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+
+	if len(lines) < 3 {
+		t.Fatalf("Expected at least 3 lines (top, title, bottom), got %d", len(lines))
+	}
+
+	// All lines should have the same visible width
+	topWidth := visibleWidth(lines[0])
+	titleLineWidth := visibleWidth(lines[1])
+	bottomWidth := visibleWidth(lines[len(lines)-1])
+
+	if topWidth != titleLineWidth {
+		t.Errorf("Top border width (%d) != title line width (%d)\nTop:   %q\nTitle: %q",
+			topWidth, titleLineWidth, lines[0], lines[1])
+	}
+	if topWidth != bottomWidth {
+		t.Errorf("Top border width (%d) != bottom border width (%d)", topWidth, bottomWidth)
+	}
+}
+
+func TestHeader_MultiByte_WithSubtitle(t *testing.T) {
+	var buf bytes.Buffer
+	u := NewWithOptions(&buf, true)
+
+	u.Header("テスト", "サブタイトル") // 3 runes title, 6 runes subtitle
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+
+	if len(lines) < 4 {
+		t.Fatalf("Expected at least 4 lines (top, title, subtitle, bottom), got %d", len(lines))
+	}
+
+	// All lines should have the same visible width
+	widths := make([]int, len(lines))
+	for i, line := range lines {
+		widths[i] = visibleWidth(line)
+	}
+
+	for i := 1; i < len(widths); i++ {
+		if widths[i] != widths[0] {
+			t.Errorf("Line %d width (%d) != line 0 width (%d)\nLine 0: %q\nLine %d: %q",
+				i, widths[i], widths[0], lines[0], i, lines[i])
+		}
+	}
+}

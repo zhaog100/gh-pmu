@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/rubrical-works/gh-pmu/internal/api"
 	"github.com/rubrical-works/gh-pmu/internal/config"
@@ -23,13 +24,14 @@ import (
 // ErrRepoRootProtected is returned when attempting to write config to repo root during tests
 var ErrRepoRootProtected = errors.New("cannot write config to repository root during tests")
 
-// protectRepoRoot enables protection against writing to repo root (set by tests)
-var protectRepoRoot bool
+// protectRepoRoot enables protection against writing to repo root (set by tests).
+// Uses atomic.Bool for thread safety under parallel test execution.
+var protectRepoRoot atomic.Bool
 
 // SetRepoRootProtection enables or disables repo root write protection.
 // This should be called by test setup to prevent accidental config writes.
 func SetRepoRootProtection(enabled bool) {
-	protectRepoRoot = enabled
+	protectRepoRoot.Store(enabled)
 }
 
 // isRepoRoot checks if the given directory is the repository root by looking for go.mod
@@ -158,10 +160,12 @@ func runInit(cmd *cobra.Command, args []string, opts *initOptions) error {
 	}
 
 	// Initialize API client
-	client := api.NewClient()
+	client, err := api.NewClient()
+	if err != nil {
+		return err
+	}
 
 	var selectedProject *api.Project
-	var err error
 	var spinner *ui.Spinner
 	var projectAutoCreated bool
 
@@ -500,26 +504,8 @@ projectSelected:
 
 		// Check and create required labels from defaults
 		fmt.Fprintln(cmd.OutOrStdout())
-		u.Info("Checking repository labels...")
-		for _, labelDef := range defs.Labels {
-			exists, err := client.LabelExists(repoOwner, repoName, labelDef.Name)
-			if err != nil {
-				u.Warning(fmt.Sprintf("Could not check %s label: %v", labelDef.Name, err))
-				continue
-			}
-			if exists {
-				u.Success(fmt.Sprintf("%s label exists", labelDef.Name))
-			} else {
-				spinner = ui.NewSpinner(cmd.OutOrStdout(), fmt.Sprintf("Creating %s label...", labelDef.Name))
-				spinner.Start()
-				err := client.CreateLabel(repoOwner, repoName, labelDef.Name, labelDef.Color, labelDef.Description)
-				spinner.Stop()
-				if err != nil {
-					u.Warning(fmt.Sprintf("Could not create %s label: %v", labelDef.Name, err))
-				} else {
-					u.Success(fmt.Sprintf("Created %s label", labelDef.Name))
-				}
-			}
+		if err := SyncLabels(cmd.OutOrStdout(), u, client, repoOwner, repoName, defs.Labels, false, false); err != nil {
+			u.Warning(fmt.Sprintf("Label sync encountered errors: %v", err))
 		}
 	} else {
 		u.Info("Skipping field and label setup (framework: none)")
@@ -644,7 +630,10 @@ func runInitNonInteractive(cmd *cobra.Command, opts *initOptions) error {
 	}
 
 	// Initialize API client
-	client := api.NewClient()
+	client, clientErr := api.NewClient()
+	if clientErr != nil {
+		return clientErr
+	}
 
 	// Get owner ID for the new project
 	ownerID, err := client.GetOwnerID(owner)
@@ -987,7 +976,7 @@ func validateProject(client ProjectValidator, owner string, number int) error {
 // writeConfig writes the configuration to a .gh-pmu.yml file.
 func writeConfig(dir string, cfg *InitConfig) error {
 	// Safety check: prevent accidental writes to repo root during tests
-	if protectRepoRoot && isRepoRoot(dir) {
+	if protectRepoRoot.Load() && isRepoRoot(dir) {
 		return ErrRepoRootProtected
 	}
 
@@ -1061,7 +1050,7 @@ func writeConfig(dir string, cfg *InitConfig) error {
 // writeConfigWithMetadata writes the configuration with project metadata.
 func writeConfigWithMetadata(dir string, cfg *InitConfig, metadata *ProjectMetadata) error {
 	// Safety check: prevent accidental writes to repo root during tests
-	if protectRepoRoot && isRepoRoot(dir) {
+	if protectRepoRoot.Load() && isRepoRoot(dir) {
 		return ErrRepoRootProtected
 	}
 

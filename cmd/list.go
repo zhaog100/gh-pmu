@@ -107,7 +107,10 @@ func runList(cmd *cobra.Command, opts *listOptions) error {
 	}
 
 	// Create API client
-	client := api.NewClient()
+	client, err := api.NewClient()
+	if err != nil {
+		return err
+	}
 
 	return runListWithDeps(cmd, opts, cfg, client)
 }
@@ -479,7 +482,7 @@ func outputTable(cmd *cobra.Command, items []api.ProjectItem) error {
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "NUMBER\tTITLE\tSTATUS\tPRIORITY\tASSIGNEES")
 
 	for _, item := range items {
@@ -568,7 +571,7 @@ func outputJSON(cmd *cobra.Command, items []api.ProjectItem) error {
 		output.Items = append(output.Items, jsonItem)
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(cmd.OutOrStdout())
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(output)
 }

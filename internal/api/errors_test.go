@@ -55,10 +55,47 @@ func TestIsAuthError_WithAuthError(t *testing.T) {
 	}
 }
 
-func TestIsAuthError_With401(t *testing.T) {
+func TestIsAuthError_With401StringOnly(t *testing.T) {
+	// Plain string "401 Unauthorized" without httpStatusCoder is NOT detected
+	// as an auth error — this is intentional to prevent false positives.
 	err := errors.New("401 Unauthorized")
+	if IsAuthError(err) {
+		t.Error("Expected IsAuthError to return false for plain string '401' without HTTP status code")
+	}
+}
+
+func TestIsAuthError_With401HTTPError(t *testing.T) {
+	err := &ghHTTPError{statusCode: 401, message: "Unauthorized"}
 	if !IsAuthError(err) {
-		t.Error("Expected IsAuthError to return true for 401")
+		t.Error("Expected IsAuthError to return true for HTTP 401")
+	}
+}
+
+func TestIsAuthError_FalsePositive_IssueNumber(t *testing.T) {
+	err := errors.New("issue #1401 not found")
+	if IsAuthError(err) {
+		t.Error("Expected IsAuthError to return false for issue #1401 (false positive)")
+	}
+}
+
+func TestIsAuthError_FalsePositive_Timestamp(t *testing.T) {
+	err := errors.New("request failed at 14:01:23")
+	if IsAuthError(err) {
+		t.Error("Expected IsAuthError to return false for timestamp containing 1401")
+	}
+}
+
+func TestIsAuthError_StringFallback_Authentication(t *testing.T) {
+	err := errors.New("authentication required")
+	if !IsAuthError(err) {
+		t.Error("Expected IsAuthError to return true for 'authentication' message")
+	}
+}
+
+func TestIsAuthError_NonAuthHTTPError(t *testing.T) {
+	err := &ghHTTPError{statusCode: 404, message: "Not Found"}
+	if IsAuthError(err) {
+		t.Error("Expected IsAuthError to return false for HTTP 404")
 	}
 }
 

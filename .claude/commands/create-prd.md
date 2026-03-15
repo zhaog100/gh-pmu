@@ -1,46 +1,43 @@
 ---
-version: "v0.58.0"
+version: "v0.62.1"
 description: Transform proposal into Agile PRD
 argument-hint: "<issue-number> | extract [<directory>]"
 ---
 <!-- EXTENSIBLE -->
+
 # /create-prd
 Transform a proposal document into an Agile PRD with user stories, acceptance criteria, and epic groupings.
 **Extension Points:** See `.claude/metadata/extension-points.json` or run `/extensions list --command create-prd`
----
+
 ## Prerequisites
+**Load shared prerequisites from `.claude/metadata/command-boilerplate.json`** → `prerequisites.common` items.
+**Graceful degradation:** If `command-boilerplate.json` is not found, use hardcoded defaults: `gh pmu` extension installed, `.gh-pmu.json` configured in repository root.
+**Command-specific prerequisites:**
 - Proposal issue exists with `proposal` label
 - Proposal issue body contains link to `Proposal/[Name].md`
 - Proposal document exists in `Proposal/` directory
 - (Recommended) Charter exists: `CHARTER.md` + `Inception/` artifacts
----
+
 ## Arguments
 | Argument | Description |
 |----------|-------------|
 | `<issue-number>` | Proposal issue number (e.g., `123` or `#123`) |
 | `extract` | Extract PRD from existing codebase (requires `/charter` first) |
 | `extract <directory>` | Extract from specific directory |
----
+
 ## Modes
 | Mode | Invocation | Description |
 |------|------------|-------------|
 | **Issue-Driven** | `/create-prd 123` or `/create-prd #123` | Transform proposal to PRD |
 | **Extract** | `/create-prd extract` or `/create-prd extract src/` | Extract PRD from codebase |
 | **Interactive** | `/create-prd` | Prompt for mode selection |
----
+
 ## Execution Instructions
-**REQUIRED:** Before executing this command:
-1. **Generate Todo List:** Parse the phases and extension points in this spec, then use `TodoWrite` to create todos
-2. **Include Extensions:** For each non-empty `USER-EXTENSION` block, add a todo item
-3. **Track Progress:** Mark todos `in_progress` → `completed` as you work
-4. **Post-Compaction:** If resuming after context compaction, re-read this spec and regenerate todos
-**Todo Generation Rules:**
-- One todo per numbered phase/step
-- One todo per active extension point (non-empty `USER-EXTENSION` blocks)
-- Skip commented-out extensions
-- Use the phase/step name as the todo content
----
+**REQUIRED:** Load execution instructions from `.claude/metadata/command-boilerplate.json` → `executionInstructions.steps` and `executionInstructions.todoRules`.
+**Graceful degradation:** If `command-boilerplate.json` is not found, use hardcoded defaults: generate TodoWrite todos from phases/steps, include extension point todos, track progress, re-read spec after compaction.
+
 ## Workflow (Issue-Driven Mode)
+
 ### Phase 1: Fetch Proposal from Issue
 **Step 1: Parse issue number**
 ```bash
@@ -78,7 +75,6 @@ Expected format: File: Proposal/[Name].md
 | Context | Rules Path |
 |---------|------------|
 | All projects | `{frameworkPath}/Assistant/Anti-Hallucination-Rules-for-PRD-Work.md` |
-
 <!-- USER-EXTENSION-START: pre-analysis -->
 <!-- USER-EXTENSION-END: pre-analysis -->
 
@@ -94,6 +90,7 @@ Compare proposal against charter scope:
 2. Defer to future release
 3. Proceed anyway (creates drift)
 4. Revise proposal
+
 ### Phase 3: Analyze Proposal Gaps
 Parse proposal to identify present/missing elements:
 | Element | Detection Patterns | Gap Action |
@@ -103,7 +100,6 @@ Parse proposal to identify present/missing elements:
 | User stories | "As a...", "User can..." | Generate questions |
 | Acceptance criteria | "- [ ]", "Done when" | Generate questions |
 | Priority | "P0-P3", "High/Medium/Low" | Ask if missing |
-
 <!-- USER-EXTENSION-START: post-analysis -->
 <!-- USER-EXTENSION-END: post-analysis -->
 
@@ -124,6 +120,19 @@ Extract paths per category and use them to inform PRD generation:
 2. Extract numbered items as scenario descriptions
 3. Store by category for use in Phase 4.5 and Phase 6.5
 **If `## Path Analysis` section is missing:** Proceed normally — non-blocking.
+
+### Phase 3.6: Extract Screen Spec References (if present)
+Check the proposal document for `## Screen Specs` and `## Mockups` sections.
+**If `## Screen Specs` section exists:**
+1. Parse file references (e.g., `Screen-Specs/{Screen-Name}.md`)
+2. Read each referenced screen spec to extract element specifications
+3. Use element data (field names, types, validation rules, defaults) to inform acceptance criteria generation in Phase 4.5
+**If `## Mockups` section exists:**
+1. Parse mockup references (e.g., `Mockups/{Screen-Name}-mockup.md`)
+2. Note mockup availability for cross-referencing in the PRD
+**Consumption only:** `/create-prd` reads screen spec references from the proposal — it does not discover or create new screen specs. If referenced files are missing, warn and continue.
+**If neither section is present:** Proceed normally — non-blocking.
+
 ### Phase 4: Dynamic Question Generation
 Generate context-aware questions for missing elements.
 **Question Rules:**
@@ -131,7 +140,6 @@ Generate context-aware questions for missing elements.
 2. Only ask what's truly missing
 3. Allow "skip" or "not sure" responses
 4. Present 3-5 questions at a time
-
 <!-- USER-EXTENSION-START: pre-transform -->
 <!-- USER-EXTENSION-END: pre-transform -->
 
@@ -143,7 +151,6 @@ Transform proposal requirements into Agile user stories.
 3. Identify BENEFIT (why does it matter?)
 4. Transform to story format
 **Anti-Pattern Detection:** Flag implementation details (file operations, internal changes, code-level details) and move to Technical Notes section.
-
 <!-- USER-EXTENSION-START: post-transform -->
 <!-- USER-EXTENSION-END: post-transform -->
 
@@ -176,6 +183,7 @@ AskUserQuestion({
 - **If confirmed (single epic):** Consolidate all stories into 1 epic. Use descriptive title from proposal name (e.g., "Epic 1: {Feature Name}"). All stories become Story 1.1, 1.2, 1.3, etc.
 - **If declined (keep multiple):** Proceed with standard multi-epic grouping.
 **When `team` or `enterprise` mode:** Skip this step entirely.
+
 ### Phase 5: Priority Validation
 Validate priority distribution before generation:
 | Priority | Required Distribution |
@@ -184,7 +192,6 @@ Validate priority distribution before generation:
 | P1 (Should Have) | 30-40% of stories |
 | P2 (Could Have) | ≥20% of stories |
 **Small PRD Exemption:** Skip validation for PRDs with <6 stories.
-
 <!-- USER-EXTENSION-START: pre-diagram -->
 <!-- USER-EXTENSION-END: pre-diagram -->
 
@@ -199,13 +206,10 @@ Validate priority distribution before generation:
 | Class | OFF | Data models, entities |
 | Component | OFF | System architecture |
 | State | OFF | State machines |
-
 <!-- USER-EXTENSION-START: diagram-generator -->
 <!-- USER-EXTENSION-END: diagram-generator -->
-
 <!-- USER-EXTENSION-START: post-diagram -->
 <!-- USER-EXTENSION-END: post-diagram -->
-
 <!-- USER-EXTENSION-START: pre-generation -->
 <!-- USER-EXTENSION-END: pre-generation -->
 
@@ -220,80 +224,11 @@ PRD/
             └── {type}-{description}.drawio.svg
 ```
 **Note:** Existing flat PRDs (`PRD/PRD-{name}.md`) are grandfathered.
-Create PRD document at `PRD/{name}/PRD-{name}.md`:
-```markdown
-# PRD: <Feature Name>
-
-**Status:** Draft
-**Created:** <date>
-**Source Proposal:** <proposal-path>
-**Proposal Issue:** #<issue-number> (closed)
-
----
-
-## Overview
-<From proposal>
-
----
-
-## Epics
-### Epic 1: <Theme>
-Stories: 1.1, 1.2, 1.3
-
----
-
-## User Stories
-
-### Story 1.1: <Title>
-**As a** <user type>
-**I want** <capability>
-**So that** <benefit>
-
-**Acceptance Criteria:**
-- [ ] <criterion>
-
-**Priority:** P0 - Must Have
-
----
-
-## Diagrams
-
-| Epic | Diagram | Description |
-|------|---------|-------------|
-| Epic 1 | `Diagrams/Epic-1/use-case-desc.drawio.svg` | Actor interactions |
-
-> **Traceability:** Diagram elements cite source (story ID, AC number).
-
----
-
-## Technical Notes
-> Implementation hints, not requirements.
-> Do not create issues from this section.
-
----
-
-## Out of Scope
-<Explicit exclusions>
-
----
-
-## Dependencies
-<Cross-references>
-
----
-
-## Open Questions
-<Unresolved items>
-
----
-
-*Generated by create-prd skill*
-*Ready for Create-Backlog*
-```
-
+Create PRD document at `PRD/{name}/PRD-{name}.md`.
+**Load template from `Templates/artifacts/prd-template.md`.** Read the template file and populate placeholders with actual values from the proposal and generated content.
+**Graceful degradation:** If `Templates/artifacts/prd-template.md` is not found, warn `"PRD template file missing, using inline fallback."` and use the standard PRD structure (sections: Overview, Epics, User Stories, Diagrams, Technical Notes, Out of Scope, Dependencies, Open Questions).
 <!-- USER-EXTENSION-START: post-generation -->
 <!-- USER-EXTENSION-END: post-generation -->
-
 <!-- USER-EXTENSION-START: quality-checklist -->
 <!-- USER-EXTENSION-END: quality-checklist -->
 
@@ -310,69 +245,14 @@ Create test plan artifact from PRD acceptance criteria.
 3. Use defaults: 80% unit coverage, "TBD" for framework
 **Step 2: Generate test plan**
 **Generate:** `PRD/{name}/Test-Plan-{name}.md`
-```markdown
-# TDD Test Plan: {Feature Name}
-
-## Source
-- **PRD:** PRD-{name}.md
-- **Created:** {date}
-- **Approval Issue:** #{to-be-created}
-- **Test Strategy:** Inception/Test-Strategy.md
-
-## Test Strategy Overview
-
-| Level | Scope | Framework |
-|-------|-------|-----------|
-| Unit | Individual functions/components | {from Test-Strategy.md → Framework → Unit Tests} |
-| Integration | Cross-component flows | {from Test-Strategy.md → Framework → Integration} |
-| E2E | Critical user journeys | {from Test-Strategy.md → Framework → E2E, or "TBD"} |
-
-## Epic Test Coverage
-
-### Epic 1: {Name}
-
-| Story | Acceptance Criteria | Test Cases |
-|-------|--------------------| -----------|
-| {Story title} | {AC from PRD} | ✓ Test valid input |
-|               |               | ✓ Test invalid input |
-|               |               | ✓ Test edge case |
-
-[Repeat for each epic/story]
-
-## Integration Test Points
-
-| Components | Test Scenario | Priority |
-|------------|---------------|----------|
-| [Component A] ↔ [Component B] | Data flows correctly | P0 |
-
-## E2E Scenarios
-
-| Scenario | User Journey | Expected Outcome |
-|----------|--------------|------------------|
-| Happy path | User completes primary flow | Success state |
-| Error recovery | User encounters error | Graceful handling |
-
-## Coverage Targets
-
-| Type | Target | Rationale |
-|------|--------|-----------|
-| Unit | {from Test-Strategy.md → Coverage Targets → Unit, default: 80%+} | Core logic |
-| Integration | {from Test-Strategy.md → Coverage Targets → Integration, default: Key flows} | Boundary verification |
-| E2E | {from Test-Strategy.md → Coverage Targets → E2E, default: Critical paths} | Journey validation |
-
-## Approval Checklist
-
-- [ ] All PRD acceptance criteria have test cases
-- [ ] Edge cases and error conditions identified
-- [ ] Integration points between epics mapped
-- [ ] E2E scenarios cover critical journeys
-- [ ] Coverage targets are realistic
-```
+**Load template from `Templates/artifacts/test-plan-template.md`.** Read the template file and populate placeholders with actual values from the PRD content and test strategy configuration.
+**Graceful degradation:** If `Templates/artifacts/test-plan-template.md` is not found, warn `"Test plan template file missing, using inline fallback."` and use the standard test plan structure (sections: Source, Test Strategy Overview, Epic Test Coverage, Integration Test Points, E2E Scenarios, Coverage Targets, Approval Checklist).
 **Derivation Rules:**
 1. Parse each story's acceptance criteria from PRD
 2. For each criterion, generate 2-3 test cases (valid, invalid, edge)
 3. Identify cross-story/cross-epic integration points
 4. Extract E2E scenarios from user journeys in PRD
+
 ### Phase 6.6: Create Test Plan Approval Issue
 **Create GitHub issue for test plan approval:**
 ```bash
@@ -404,6 +284,7 @@ A TDD test plan has been generated for **{Name}**.
   --status backlog
 ```
 **Update test plan with issue number:** After issue creation, update the Test Plan frontmatter with the approval issue number.
+
 ### Phase 7: Proposal Lifecycle Completion
 **Only for Issue-Driven Mode** - Complete the proposal lifecycle after PRD generation.
 **Step 1: Move proposal document**
@@ -450,28 +331,14 @@ gh pmu create --label prd --assignee @me \
 ```
 **Step 4: Report completion**
 ```
-PRD created: PRD/{name}/PRD-{name}.md
-Test Plan created: PRD/{name}/Test-Plan-{name}.md
-
-Proposal lifecycle completed:
-  ✓ Proposal archived: Proposal/Implemented/{Name}.md
-  ✓ Proposal issue closed: #{issue_num}
-  ✓ PRD tracking issue created: #{prd_issue_num}
-  ✓ Test plan approval issue created: #{test_plan_issue_num}
-
-Diagrams (if generated):
-  PRD/{name}/Diagrams/{epic}/use-case-{desc}.drawio.svg
-  PRD/{name}/Diagrams/{epic}/activity-{desc}.drawio.svg
-
-⚠️ APPROVAL REQUIRED before Create-Backlog:
-  Review and close: #{test_plan_issue_num} (Approve Test Plan)
-
-Next steps:
-1. Review the PRD and test plan
-2. Approve test plan by closing #{test_plan_issue_num}
-3. Run /create-backlog {prd_issue_num} to generate issues
+PRD: PRD/{name}/PRD-{name}.md | Test Plan: PRD/{name}/Test-Plan-{name}.md
+Proposal archived: Proposal/Implemented/{Name}.md | Proposal issue #{issue_num} closed
+PRD tracker issue: #{prd_issue_num} | Test plan approval issue: #{test_plan_issue_num}
+Diagrams: PRD/{name}/Diagrams/ (if generated)
+⚠️ Approve test plan (#{test_plan_issue_num}) before running /create-backlog
+Next: /create-backlog {prd_issue_num}
 ```
----
+
 ## Interactive Mode
 For `/create-prd` (no arguments):
 ```
@@ -487,42 +354,34 @@ How would you like to create the PRD?
 Enter the proposal issue number: ___
 ```
 Then proceed with Issue-Driven Mode workflow.
----
+
 ## Workflow (Extract Mode)
 For `/create-prd extract` or `/create-prd extract <directory>`:
-### Step 1: Check Inception/ Artifacts
-```bash
-test -d Inception
+
+### Step 1: Check Prerequisites
+Verify `Skills/codebase-analysis/SKILL.md` exists on disk. Also check for `Inception/` artifacts.
+**If skill not found:**
 ```
-**If missing:**
+codebase-analysis skill not installed. Run: /manage-skills install codebase-analysis
 ```
-No Inception/ artifacts found.
-For best results, run /charter first to establish project context.
-Options:
-1. Run /charter now (recommended)
-2. Proceed without charter context
-3. Cancel
-```
-### Step 2: Load Analysis Skill
-Load `Skills/codebase-analysis/SKILL.md` for analysis capabilities.
-### Step 3: Analyze Codebase
-Run analysis on target (entire project or specified directory):
-| Analysis | Output |
-|----------|--------|
-| Tech stack detection | Languages, frameworks, dependencies |
-| Architecture inference | Structure, layers, patterns |
-| Test parsing | Features from test descriptions |
-| NFR detection | NFRs from code patterns |
-### Step 4: User Validation
-Present extracted features with confidence levels for user selection.
-### Step 5: Diagram Generation
-Same diagram workflow as promote mode (Phase 5.5).
-### Step 6: Generate PRD
-Same Phase 6 output format, with additions:
+→ **STOP**
+**If `Inception/` missing:** Warn and offer `/charter` (non-blocking).
+
+### Step 2: Load Skill
+Read `Skills/codebase-analysis/SKILL.md` for analysis capabilities and workflow instructions.
+
+### Step 3: Run Codebase Analysis
+Delegate to the codebase-analysis skill to analyze the target (entire project or specified directory). The skill handles tech stack detection, architecture inference, test parsing, and NFR detection.
+
+### Step 4: Bridge to Phase 6
+Use the skill's analysis output to generate the PRD via Phase 6. Same diagram workflow as Issue-Driven mode (Phase 5.5). Present extracted features with confidence levels for user selection before generation.
+
+### Step 5: Add Extraction Metadata
+Augment the Phase 6 PRD output with extraction-specific additions:
 - Confidence levels for each story
 - Extraction metadata section
 - Evidence citations for each feature
----
+
 ## Error Handling
 | Situation | Response |
 |-----------|----------|
@@ -533,7 +392,7 @@ Same Phase 6 output format, with additions:
 | No Inception/ artifacts | "No charter context. Proceeding with limited validation." |
 | User skips all questions | "Insufficient detail. Add more to proposal first?" |
 | Empty proposal | "Proposal needs more detail. Minimum: problem + solution." |
----
+
 ## Quality Checklist
 Before finalizing PRD:
 - [ ] All user stories have acceptance criteria
@@ -543,21 +402,19 @@ Before finalizing PRD:
 - [ ] Out of scope explicitly stated
 - [ ] Open questions flagged
 - [ ] PRD is Create-Backlog compatible
----
+
 ## Technical Skills Mapping
 After PRD generation, check for additional skills based on technical requirements:
-### Step 1: Read Config
-Use the Read tool to read `framework-config.json` (do NOT use Glob — `.claude/metadata/` is symlinked in user projects and Glob does not follow symlinks). Get existing `projectSkills` array (may be empty or absent).
-### Step 2: Run keyword matching
-Collect PRD content (tech requirements, user stories, non-functional requirements). Write to a temp file, then run:
+
+### Step 1: Run skill matcher
 ```bash
-node .claude/scripts/shared/lib/skill-keyword-matcher.js \
-  --content-file .tmp-skill-content.txt \
-  --installed "{comma-separated projectSkills from framework-config.json}"
-rm .tmp-skill-content.txt
+node .claude/scripts/shared/prd-skill-matcher.js --prd "PRD/{name}/PRD-{name}.md"
 ```
-Parse JSON output: array of `{skill, matchedKeywords}` objects. Already-installed skills are excluded automatically.
-### Step 3: Present New Skills to User
+Parse JSON output: `{ matchedSkills, existingSkills, newSkills, registryAvailable }`. The script reads `framework-config.json` for installed skills and `.claude/metadata/skill-keywords.json` for the keyword registry automatically.
+**Note:** If you need to read `framework-config.json` manually, use the Read tool (do NOT use Glob — `.claude/metadata/` is symlinked in user projects and Glob does not follow symlinks).
+**Graceful degradation:** If the script is missing or crashes, warn `"Skill matching unavailable, skipping."` and continue (non-blocking).
+
+### Step 2: Present New Skills to User
 If new skills detected:
 **ASK USER:**
 ```
@@ -568,7 +425,8 @@ PRD mentions technical requirements that suggest additional skills:
 
 Add to project skills? (yes/no/edit)
 ```
-### Step 4: Update framework-config.json
+
+### Step 3: Update framework-config.json
 If user confirms:
 ```javascript
 config.projectSkills = [...existingSkills, ...newSkills];
@@ -579,5 +437,4 @@ Report added skills:
 Added skills: ci-cd-pipeline-design, api-versioning
 Total project skills: 4
 ```
----
 **End of /create-prd Command**

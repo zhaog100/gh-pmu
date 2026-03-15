@@ -273,50 +273,63 @@ func TestRunFieldCreate_SingleSelectWithOptions(t *testing.T) {
 }
 
 func TestRunFieldCreate_SingleSelectRequiresOptions(t *testing.T) {
+	cmd := &cobra.Command{}
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
 	opts := &fieldCreateOptions{
 		fieldType: "single_select",
-		options:   []string{}, // No options
+		options:   []string{},
 		yes:       true,
 	}
 
-	// This validation happens before API call, so we test at command level
-	cmd := newFieldCreateCommand()
-	cmd.SetArgs([]string{"Environment", "--type", "single_select"})
-
-	// We can't easily test this without stdin, but we can verify the validation logic
-	dataType := strings.ToUpper(opts.fieldType)
-	if dataType == "SINGLE_SELECT" && len(opts.options) == 0 {
-		// Expected - validation should catch this
-	} else {
-		t.Error("expected validation to fail for single_select without options")
+	err := runFieldCreate(cmd, []string{"Environment"}, opts)
+	if err == nil {
+		t.Fatal("Expected error for single_select without options")
+	}
+	if !strings.Contains(err.Error(), "at least one --option") {
+		t.Errorf("Expected error about options, got: %v", err)
 	}
 }
 
 func TestRunFieldCreate_InvalidFieldType(t *testing.T) {
+	cmd := &cobra.Command{}
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
 	opts := &fieldCreateOptions{
 		fieldType: "invalid_type",
 		yes:       true,
 	}
 
-	dataType := strings.ToUpper(opts.fieldType)
-	switch dataType {
-	case "TEXT", "NUMBER", "DATE", "SINGLE_SELECT":
-		t.Error("expected invalid_type to be rejected")
-	default:
-		// Expected - invalid type should be rejected
+	err := runFieldCreate(cmd, []string{"TestField"}, opts)
+	if err == nil {
+		t.Fatal("Expected error for invalid field type")
+	}
+	if !strings.Contains(err.Error(), "invalid field type") {
+		t.Errorf("Expected 'invalid field type' error, got: %v", err)
 	}
 }
 
-func TestFieldCreateOptions_AllTypes(t *testing.T) {
-	validTypes := []string{"text", "number", "date", "single_select"}
+func TestRunFieldCreate_ValidTypes(t *testing.T) {
+	// Valid types should pass validation (may fail at config load, which is fine)
+	validTypes := []string{"text", "number", "date"}
 
 	for _, ft := range validTypes {
-		dataType := strings.ToUpper(ft)
-		switch dataType {
-		case "TEXT", "NUMBER", "DATE", "SINGLE_SELECT":
-			// Valid
-		default:
-			t.Errorf("type %s should be valid", ft)
-		}
+		t.Run(ft, func(t *testing.T) {
+			cmd := &cobra.Command{}
+			buf := new(bytes.Buffer)
+			cmd.SetOut(buf)
+			cmd.SetErr(buf)
+
+			opts := &fieldCreateOptions{fieldType: ft, yes: true}
+			err := runFieldCreate(cmd, []string{"TestField"}, opts)
+			// Should NOT fail with "invalid field type" — may fail at config load
+			if err != nil && strings.Contains(err.Error(), "invalid field type") {
+				t.Errorf("Type %q should be valid, got: %v", ft, err)
+			}
+		})
 	}
 }

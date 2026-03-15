@@ -122,7 +122,7 @@ func (u *UI) Step(current, total int, title string) {
 
 // Header prints a styled header box
 func (u *UI) Header(title, subtitle string) {
-	width := max(len(title), len(subtitle)) + 4
+	width := max(visibleWidth(title), visibleWidth(subtitle)) + 4
 	if width < 40 {
 		width = 40
 	}
@@ -134,7 +134,7 @@ func (u *UI) Header(title, subtitle string) {
 		u.color(Cyan, BoxTopRight))
 
 	// Title line
-	titlePadding := width - len(title) - 2
+	titlePadding := width - visibleWidth(title) - 2
 	fmt.Fprintf(u.out, "%s  %s%s%s\n",
 		u.color(Cyan, BoxVertical),
 		u.color(Bold+White, title),
@@ -143,7 +143,7 @@ func (u *UI) Header(title, subtitle string) {
 
 	// Subtitle line
 	if subtitle != "" {
-		subtitlePadding := width - len(subtitle) - 2
+		subtitlePadding := width - visibleWidth(subtitle) - 2
 		fmt.Fprintf(u.out, "%s  %s%s%s\n",
 			u.color(Cyan, BoxVertical),
 			u.color(Dim+White, subtitle),
