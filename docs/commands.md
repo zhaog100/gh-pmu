@@ -34,6 +34,13 @@ Utilities:
   filter      Filter piped issue JSON by project fields
   history     Show git commit history with issue references
 
+Label Management:
+  label sync    Sync standard labels from defaults
+  label list    List all repository labels
+  label add     Create a label
+  label update  Update a label
+  label delete  Delete a label
+
 Workflow Commands:
   branch      Manage branches for development workflows
   validation  Manage status transition validation rules
@@ -624,6 +631,84 @@ abc1234 feat: Add login endpoint (#42)
 def5678 fix: Handle null user (#43)
 ghi9012 docs: Update API reference
 ```
+
+---
+
+## Label Management
+
+Commands for managing repository labels without running a full init.
+
+### label sync
+
+Sync standard labels from `defaults.yml` to the repository.
+
+```bash
+# Preview changes without applying
+gh pmu label sync --dry-run
+
+# Create missing standard labels
+gh pmu label sync
+
+# Also update color/description of existing labels
+gh pmu label sync --update
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Preview changes without applying |
+| `--update` | Update color/description of existing labels |
+| `-R, --repo` | Repository (owner/repo format) |
+
+### label list
+
+List all labels in the repository with a standard/custom indicator.
+
+```bash
+gh pmu label list
+```
+
+Labels matching entries in `defaults.yml` are marked as "standard". Others are marked as "custom".
+
+### label add
+
+Create a new label in the repository.
+
+```bash
+gh pmu label add my-label --color ff0000 --description "My custom label"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--color` | Label color (hex without #) |
+| `--description` | Label description |
+| `-R, --repo` | Repository (owner/repo format) |
+
+### label update
+
+Update an existing label's color or description.
+
+```bash
+gh pmu label update my-label --color 00ff00
+gh pmu label update my-label --description "Updated description"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--color` | New label color (hex without #) |
+| `--description` | New label description |
+| `-R, --repo` | Repository (owner/repo format) |
+
+### label delete
+
+Delete a label from the repository.
+
+```bash
+gh pmu label delete my-label
+```
+
+| Flag | Description |
+|------|-------------|
+| `-R, --repo` | Repository (owner/repo format) |
 
 ---
 

@@ -1072,8 +1072,12 @@ func TestHasPipedInput_RegularFile(t *testing.T) {
 	defer os.Remove(tmpfile.Name())
 	defer tmpfile.Close()
 
-	tmpfile.WriteString("test data")
-	tmpfile.Seek(0, 0)
+	if _, err := tmpfile.WriteString("test data"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tmpfile.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
 
 	result := hasPipedInput(tmpfile)
 	if result != true {

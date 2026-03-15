@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-15
+
+### Added
+- `gh pmu label` command group for managing repository labels (#767)
+  - `label sync` — sync standard labels from defaults.yml
+  - `label list` — list all labels with standard/custom indicator
+  - `label add` — create a label
+  - `label update` — update a label's color or description
+  - `label delete` — delete a label
+- Cursor-based pagination for `GetProjectItemID` (#752)
+- Shared `resolveLabelIDs` extracted from `CreateIssue` variants (#751)
+
+### Fixed
+- `matchesTriageQuery` now evaluates positive and negative labels independently (#763)
+- Sequential `TrimPrefix` double-strip in create command (#756)
+- `Header` padding uses `visibleWidth` instead of `len` (#754)
+- `ensureGitignore` file locking on Windows (#753)
+- `IsAuthError` false-positives on strings containing "401" (#750)
+- `os.Stdin.Stat()` nil panic in filter command (#757)
+- `NewClient`/`NewClientWithOptions` return error instead of nil-gql guards (#749)
+- E2E init tests clean up created projects and fix config detection
+
+### Changed
+- Route all `run*WithDeps` output through `cmd.OutOrStdout()` (#766)
+- Decompose `collectSubIssuesRecursive` into focused functions (#762)
+- Make `protectRepoRoot` thread-safe with `atomic.Bool` (#760)
+- Replace `TrimSuffix` chain with keyword lookup map in `parseCommitReferences` (#759)
+- Replace pipe delimiter with null byte in git log parsing (#758)
+- Inject `io.Reader` for stdin in comment command (#755)
+- Guard nil `subIssuesMap` in recursive move batch fallback (#761)
+- Guard test globals with `sync.Mutex` to fix data race (#748)
+- Upgraded hub framework to v0.62.1
+
 ## [1.2.1] - 2026-03-11
 
 ### Changed
