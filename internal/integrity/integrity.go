@@ -98,6 +98,17 @@ func RecordCheck(dir string) error {
 	return os.WriteFile(path, data, 0644)
 }
 
+// UpdateChecksumForConfig computes the checksum of the config file at path
+// and saves it to the checksum file in the same directory.
+// Call this after config.Save() to keep the checksum in sync.
+func UpdateChecksumForConfig(configPath string) error {
+	checksum, err := ComputeChecksum(configPath)
+	if err != nil {
+		return err
+	}
+	return SaveChecksum(filepath.Dir(configPath), checksum)
+}
+
 // CompareContent compares local config content against committed content.
 // If committed is nil or empty, reports drift (no committed version found).
 func CompareContent(local, committed []byte) (*ComparisonResult, error) {

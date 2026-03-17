@@ -231,6 +231,32 @@ func TestCompareConfigs_WithDrift(t *testing.T) {
 	}
 }
 
+func TestUpdateChecksumForConfig_CreatesChecksumFile(t *testing.T) {
+	// ARRANGE: Config file exists
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, ".gh-pmu.json")
+	content := []byte(`{"project":{"owner":"test","number":1}}`)
+	os.WriteFile(configPath, content, 0644)
+
+	// ACT
+	err := UpdateChecksumForConfig(configPath)
+
+	// ASSERT
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Checksum file should exist and match
+	stored, err := LoadChecksum(dir)
+	if err != nil {
+		t.Fatalf("Expected to read checksum: %v", err)
+	}
+	computed, _ := ComputeChecksum(configPath)
+	if stored != computed {
+		t.Errorf("Stored checksum %q doesn't match computed %q", stored, computed)
+	}
+}
+
 func TestCompareConfigs_EmptyCommitted_ReportsNewFile(t *testing.T) {
 	// ARRANGE: No committed version
 	local := []byte(`{"project":{"owner":"test","number":1}}`)
