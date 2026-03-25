@@ -2065,8 +2065,8 @@ func TestMigrateYAML_SaveNoLongerWritesYAML(t *testing.T) {
 	jsonPath := filepath.Join(testDir, ConfigFileName)
 
 	cfg := &Config{
-		Version: "1.4.0",
-		Project: Project{Owner: "test-owner", Number: 1},
+		Version:      "1.4.0",
+		Project:      Project{Owner: "test-owner", Number: 1},
 		Repositories: []string{"test-owner/test-repo"},
 	}
 
